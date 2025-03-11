@@ -17,7 +17,7 @@ B por columnas. ¿Qué conclusión puede obtenerse de la diferencia en
 los tiempos de ejecución? ¿Cómo se relaciona con el principio de
 localidad?
 
-- La ejecucion se demora un poco mas cuando estan ordenadas por filas (No se porque, despues pregunto). Esto se debe a que al hacer el producto de las matrices, A y C se recorren por filas, pero al estar ordenadas por columna, no se cumple el principio de localidad (?), lo cual genera muchos fallos de cache. Lo ideal seria que A y C
+- La ejecucion se demora mas cuando estan ordenadas por columnas. Esto se debe a que al hacer el producto de las matrices, A y C se recorren por filas, pero al estar ordenadas por columna, no se cumple el principio de localidad (?), lo cual genera muchos fallos de cache. Lo ideal seria que A y C
 
 ## B
 
