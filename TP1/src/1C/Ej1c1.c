@@ -1,38 +1,10 @@
+// ORDENADO POR COLUMNAS
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#define ORDENXFILAS 0
-#define ORDENXCOLUMNAS 1
-// #define ORDENXFILAS i + j * N
 
 // Dimension por defecto de las matrices
 int N = 100;
-
-// Retorna el valor de la matriz en la posicion fila y columna segun el orden que este ordenada
-// double getValor(double *matriz, int fila, int columna, int orden)
-// {
-//   if (orden == ORDENXFILAS)
-//   {
-//     return (matriz[fila * N + columna]);
-//   }
-//   else
-//   {
-//     return (matriz[fila + columna * N]);
-//   }
-// }
-
-// // Establece el valor de la matriz en la posicion fila y columna segun el orden que este ordenada
-// void setValor(double *matriz, int fila, int columna, int orden, double valor)
-// {
-//   if (orden == ORDENXFILAS)
-//   {
-//     matriz[fila * N + columna] = valor;
-//   }
-//   else
-//   {
-//     matriz[fila + columna * N] = valor;
-//   }
-// }
 
 // Para calcular tiempo
 double dwalltime()
@@ -47,7 +19,7 @@ double dwalltime()
 
 int main(int argc, char *argv[])
 {
-  double *A, *B, *C;
+  double *A, *C;
   int i, j, k;
   int check = 1;
   double timetick;
@@ -61,7 +33,6 @@ int main(int argc, char *argv[])
 
   // Aloca memoria para las matrices
   A = (double *)malloc(sizeof(double) * N * N);
-  B = (double *)malloc(sizeof(double) * N * N);
   C = (double *)malloc(sizeof(double) * N * N);
 
   // Inicializa las matrices A y B en 1, el resultado sera una matriz con todos sus valores en N
@@ -69,10 +40,7 @@ int main(int argc, char *argv[])
   {
     for (j = 0; j < N; j++)
     {
-      // setValor(A, i, j, ORDENXFILAS, 1);
       A[i + j * N] = 1;
-      // setValor(B, i, j, ORDENXFILAS, 1);
-      B[i + j * N] = 1;
     }
   }
 
@@ -84,12 +52,10 @@ int main(int argc, char *argv[])
   {
     for (j = 0; j < N; j++)
     {
-      // setValor(C, i, j, ORDENXFILAS, 0);
       C[i + j * N] = 0;
       for (k = 0; k < N; k++)
       {
-        // setValor(C, i, j, ORDENXFILAS, getValor(C, i, j, ORDENXFILAS) + getValor(A, i, k, ORDENXFILAS) * getValor(B, k, j, ORDENXFILAS));
-        C[i + j * N] = C[i + j * N] + A[i + k * N] * B[k + j * N];
+        C[i + j * N] = C[i + j * N] + A[i + k * N] * A[k + j * N];
       }
     }
   }
@@ -101,7 +67,6 @@ int main(int argc, char *argv[])
   {
     for (j = 0; j < N; j++)
     {
-      // check = check && (getValor(C, i, j, ORDENXFILAS) == N);
       check = check && (C[i + j * N] == N);
     }
   }
@@ -116,7 +81,6 @@ int main(int argc, char *argv[])
   }
 
   free(A);
-  free(B);
   free(C);
   return (0);
 }
