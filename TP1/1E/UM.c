@@ -1,4 +1,4 @@
-// Matriz normal * upper triangular
+// Upper triangular * matriz normal
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +20,7 @@ double dwalltime()
 
 int main(int argc, char *argv[])
 {
-  double *M, *U, *C;
+  double *M, *U, *C, *RES;
   int i, j, k;
   int check = 1;
   double timetick;
@@ -36,21 +36,23 @@ int main(int argc, char *argv[])
   M = (double *)malloc(sizeof(double) * N * N);
   U = (double *)malloc(sizeof(double) * N * N);
   C = (double *)malloc(sizeof(double) * N * N);
+  RES = (double *)malloc(sizeof(double) * N * N);
 
   // Inicializa las matrices A y B en 1, el resultado sera una matriz con todos sus valores en N
   for (i = 0; i < N; i++)
   {
     for (j = 0; j < N; j++)
     {
-      M[i * N + j] = 1;
-      // U[i + (j * (j + 1) / 2)] = 1; // No almacena los ceros
+      M[i + j * N] = 1;
+      RES[i * N + j] = N - i;
+      // U[i * N + j - (i * (i + 1) / 2)] = 1; // No almacena los ceros
       if (j < i)
       {
-        U[i + j * N] = 0;
+        U[i * N + j] = 0;
       }
       else // Almacena los ceros
       {
-        U[i + j * N] = 1;
+        U[i * N + j] = 1;
       }
     }
   }
@@ -64,13 +66,33 @@ int main(int argc, char *argv[])
     for (j = 0; j < N; j++)
     {
       C[i * N + j] = 0;
-      // for (k = 0; k <= i; k++) // Sin los ceros
+      // for (k = i; k < N; k++) // Sin los ceros
       for (k = 0; k < N; k++) // Con los ceros incluidos
       {
-        // C[i * N + j] = C[i * N + j] + M[i * N + k] * U[k + (j * (j + 1) / 2)]; // Sin los ceros
-        C[i * N + j] = C[i * N + j] + M[i * N + k] * U[k * N + j]; // Con los ceros
+        // C[i * N + j] += U[i * N + k - (i * (i + 1) / 2)] * M[k + j * N]; // Sin los ceros
+        C[i * N + j] += U[i * N + k] * M[k + j * N]; // Con los ceros
       }
     }
+  }
+
+  for (i = 0; i < N; i++)
+  {
+    for (j = 0; j < N; j++)
+    {
+      if (C[i * N + j] != RES[i * N + j])
+      {
+        check = 0;
+      }
+    }
+  }
+
+  if (check)
+  {
+    printf("Multiplicacion de matriz normal por triangular inferior resultado correcto\n");
+  }
+  else
+  {
+    printf("Multiplicacion de matriz normal por triangular inferior resultado erroneo\n");
   }
 
   printf("Tiempo en segundos %f\n", dwalltime() - timetick);
@@ -78,5 +100,6 @@ int main(int argc, char *argv[])
   free(M);
   free(U);
   free(C);
+  free(RES);
   return (0);
 }

@@ -1,4 +1,3 @@
-// ORDENADO POR COLUMNAS
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -19,7 +18,7 @@ double dwalltime()
 
 int main(int argc, char *argv[])
 {
-  double *A, *C;
+  double *A, *B, *C;
   int i, j, k;
   int check = 1;
   double timetick;
@@ -33,6 +32,7 @@ int main(int argc, char *argv[])
 
   // Aloca memoria para las matrices
   A = (double *)malloc(sizeof(double) * N * N);
+  B = (double *)malloc(sizeof(double) * N * N);
   C = (double *)malloc(sizeof(double) * N * N);
 
   // Inicializa las matrices A y B en 1, el resultado sera una matriz con todos sus valores en N
@@ -40,7 +40,8 @@ int main(int argc, char *argv[])
   {
     for (j = 0; j < N; j++)
     {
-      A[i + j * N] = 1;
+      A[i * N + j] = 1;
+      B[i * N + j] = 1;
     }
   }
 
@@ -52,10 +53,10 @@ int main(int argc, char *argv[])
   {
     for (j = 0; j < N; j++)
     {
-      C[i + j * N] = 0;
+      C[i * N + j] = 0;
       for (k = 0; k < N; k++)
       {
-        C[i + j * N] = C[i + j * N] + A[i + k * N] * A[k + j * N];
+        C[i * N + j] += A[i * N + k] * B[k * N + j];
       }
     }
   }
@@ -67,7 +68,7 @@ int main(int argc, char *argv[])
   {
     for (j = 0; j < N; j++)
     {
-      check = check && (C[i + j * N] == N);
+      check = check && (C[i * N + j] == N);
     }
   }
 
@@ -81,6 +82,7 @@ int main(int argc, char *argv[])
   }
 
   free(A);
+  free(B);
   free(C);
   return (0);
 }

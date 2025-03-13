@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
       C[i + j * N] = 0;
       for (k = 0; k < N; k++)
       {
-        C[i + j * N] = C[i + j * N] + A[i + k * N] * B[k + j * N];
+        C[i + j * N] += A[i + k * N] * B[k + j * N];
       }
     }
   }

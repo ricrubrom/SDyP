@@ -1,11 +1,9 @@
 # Variables
 CC = gcc
-# CFLAGS = -fopenmp -Wall -O2
-# CFLAGS = -pthread 
 TARGET = build
 SRC ?= Fuentes_Practica1/matrices.c
 N ?= 16
-BS ?= -1
+AUX ?=
 
 # Compilar el programa
 all: $(TARGET)
@@ -24,16 +22,21 @@ double: clean
 
 # Ejecutar el programa con argumentos
 run:
-	@echo "Ejecutando con N=$(N), SRC=$(SRC), BS=$(BS)"
-	@if [ -z "$(BS)" ] || [ "$(BS)" = "-1" ]; then \
+	@if [ -z "$(AUX)" ]; then \
+		echo "============================================"; \
+		echo "Ejecutando: ./$(TARGET) $(N)"; \
+		echo "============================================"; \
 		./$(TARGET) $(N); \
 	else \
-		./$(TARGET) $(N) $(BS); \
+		echo "============================================"; \
+		echo "Ejecutando: ./$(TARGET) $(N) $(AUX)"; \
+		echo "============================================"; \
+		./$(TARGET) $(N) $(AUX); \
 	fi
 
 all-run: all run clean
-single-run: single run
-double-run: double run
+single-run: single run clean
+double-run: double run clean
 
 # Limpiar los archivos generados
 clean:

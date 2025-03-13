@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
+#include <time.h>
 
 /**********Para calcular tiempo*************************************/
 double dwalltime()
@@ -24,11 +25,8 @@ double randfrom(double min, double max)
 int main(int argc, char *argv[])
 {
   double *x;
-  double *resultado1;
-  double *resultado2;
-  double y1 = 5;
-  double y2 = 0.2;
-
+  double *y;
+  double *resultado;
   double timetick, timeend;
   unsigned long i;
   unsigned long r;
@@ -36,40 +34,55 @@ int main(int argc, char *argv[])
   unsigned long R = atol(argv[2]);
 
   x = (double *)malloc(sizeof(double) * N);
-  resultado1 = (double *)malloc(sizeof(double) * N);
-  resultado2 = (double *)malloc(sizeof(double) * N);
+  y = (double *)malloc(sizeof(double) * N);
+  resultado = (double *)malloc(sizeof(double) * N);
 
   srand(time(NULL));
 
-  // Inicializa el vector
+  // Inicializa los vectores
   for (i = 0; i < N; i++)
   {
     x[i] = 2 * (1 + randfrom(0, 39916801));
+    y[i] = randfrom(1, 719);
   }
 
   // Este for es para eliminar el cool state y limpiar cache
   printf("Corriendo código de prueba para calentar el hardware...");
   for (i = 0; i < N; i++)
   {
-    resultado1[i] = x[i] * y1;
-    resultado2[i] = x[i] * y2;
+    resultado[i] = x[i] + y[i];
   }
   printf("OK\n");
 
   // EMPIEZAN LOS CALCULOS ACA!!!
-  // Division
-  printf("Division...\n");
+  printf("Ejecutando operaciones\n");
+  // Suma
+  printf("Suma...\n");
   timetick = dwalltime();
   for (r = 0; r < R; r++)
   {
     for (i = 0; i < N; i++)
     {
-      resultado1[i] = x[i] / y1;
+      resultado[i] = x[i] + y[i];
     }
   }
   timeend = dwalltime();
   printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
-  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick) / N);
+  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick) / N * R);
+
+  // Resta
+  printf("Resta...\n");
+  timetick = dwalltime();
+  for (r = 0; r < R; r++)
+  {
+    for (i = 0; i < N; i++)
+    {
+      resultado[i] = x[i] - y[i];
+    }
+  }
+  timeend = dwalltime();
+  printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
+  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick) / N * R);
 
   // Producto
   printf("Producto...\n");
@@ -78,25 +91,29 @@ int main(int argc, char *argv[])
   {
     for (i = 0; i < N; i++)
     {
-      resultado2[i] = x[i] * y2;
+      resultado[i] = x[i] * y[i];
     }
   }
   timeend = dwalltime();
   printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
-  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick) / N);
+  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick) / N * R);
 
-  for (i = 0; i < N; i++)
+  // Division
+  printf("Division...\n");
+  timetick = dwalltime();
+  for (r = 0; r < R; r++)
   {
-    // Calculo de resultados con analisis de precisión 4 digitos
-    if (abs(resultado1[i] - resultado2[i]) > 0.0001)
+    for (i = 0; i < N; i++)
     {
-      printf("Error en resultado: %f <> %f \n", resultado1[i], resultado2[i]);
+      resultado[i] = x[i] / y[i];
     }
   }
+  timeend = dwalltime();
+  printf(" Tiempo total en segundos %.10lf \n", (timeend - timetick));
+  printf(" Tiempo promedio en segundos %.10lf \n", (timeend - timetick) / N * R);
 
   free(x);
-  free(resultado1);
-  free(resultado2);
-
+  free(y);
+  free(resultado);
   return (0);
 }
