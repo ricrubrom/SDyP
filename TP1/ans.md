@@ -30,7 +30,7 @@ Analizar los algoritmos que resuelven distintas operaciones sobre matrices de $N
 - expMatrices1.c: dos versiones que resuelven la operación AB + AC + AD
 - expMatrices2.c: dos versiones que resuelven la operación AB + CD
 - expMatrices3.c: dos versiones que resuelven la operación BA + CAD
-  ------------------- |
+
   Ejecutar con distintos valores de N. Comparar los tiempos de ejecución de las dos
   versiones en cada caso. ¿Qué versión es más rápida? ¿Por qué?
 
@@ -55,8 +55,8 @@ Describir brevemente cómo funciona el algoritmo multBloques.c que resuelve la m
 - Para una matriz con N=1024, los tiempos de ejecucion fueron los siguientes:
 
   |  BS  | Tiempo (sg) |
-  | :--: | :---------: | ------------------- |
-  |  1   |    7.53     | ------------------- |
+  | :--: | :---------: |
+  |  1   |    7.53     |
   |  2   |    4.98     |
   |  4   |    4.31     |
   |  8   |    4.11     |
