@@ -97,13 +97,11 @@ métodos ¿Cuál es más rápido? ¿Por qué?
 
   El metodo mas rapido es el iterativo. Esto se debe a que en el iterativo solo debe realizar un for loop hasta n, lo cual es rapido, en cambio en el recursivo, el overhead introducido por el llamado a la funcion es muy grande, demorando mucho la ejecucion.
 
-  PD: los tiempos de ejecucion del recursivo son en realidad mucho mayores (N=50 fue mucho mas cercano a los 2 minutos).
-
 ## Ejercicio 3 (Ejecutado en Escritorio)
 
 Analizar los algoritmos productoVectorialRegistro.c y productoVectorialSinRegistro.c. Ambos programas parten de dos conjuntos de N vectores matemáticos y realizan el producto vectorial uno a uno de acuerdo al orden de cada vector en el conjunto. ¿Cuál de las dos soluciones es más rápida? ¿Por qué?
 
-- Utilizando un $N=2^{28}$ obtengo que el algoritmo productoVectorialRegistro.c se demora 1.39sg, mientras que productoVectorialSinRegistro.c se demora 0.93sg, por ende es mas rapido el segundo algoritmo. Esto se debe a que el acceso a memoria es mas directo, pues en vez de tener que acceder al registro y luego al valor deseado, se puede acceder directamente a este. (??)
+- Utilizando $N=2^{28}$ obtengo que el algoritmo productoVectorialRegistro.c se demora 1.39sg, mientras que productoVectorialSinRegistro.c se demora 0.93sg, por ende es mas rapido el segundo algoritmo. Esto se debe a que el acceso a memoria es mas directo, pues en vez de tener que acceder al registro y luego al valor deseado, se puede acceder directamente a este. (??)
 
 ## Ejercicio 4 (Ejecutado en Escritorio)
 
@@ -148,5 +146,70 @@ El algoritmo modulo.c compara el tiempo de ejecución de dos versiones para obte
 
   Se puede observar que el metodo de Equivalencia es mas rapido que el de % (??)
 
-## Ejercicio 5
+## Ejercicio 5 (Ejecutado en Escritorio)
+
+### A)
+
+Analizar el algoritmo optForArray.c que inicializa un vector con sus valores en 1 de dos formas. ¿Cuál es más rápida?
+
+- Tomando un N=8192 y R=1000000, obtuve que el direccionamiento a[i] se demoro 2.93sg, mientras que el direccionamiento \*p se demoro 1.63sg, siendo este ultimo mas rapido
+
+### B)
+
+Analizar el algoritmo GaussFor.c que calcula la suma de N números naturales consecutivos y lo compara con la suma de Gauss. 3 ¿Por qué la suma para N=2147483647 da resultado correcto y para N=2147483648 el resultado es erróneo? ¿Cómo lo solucionaría?
+
+- El motivo por el que no anda es que ocurre un overflow de la variable i. Se puede solucionar reemplazando el tipo de la variable i por long o unsigned
+
+## Ejercicio 6 (Ejecutado en Escritorio)
+
+El algoritmo overheadIF.c da tres soluciones al siguiente problema: dado un vector V y una posición P, el algoritmo cuenta la cantidad de números del vector V que son menores al elemento en la posición P. Analizar los tiempos obtenidos de las tres soluciones y evaluar las fuentes de overhead en cada caso.
+
+- Para un N=1000000000, obtuve los siguientes tiempos:
+
+  | Solucion 1 (sg) | Solucion 2 (sg) | Solucion 3 (sg) |
+  | :-------------: | :-------------: | :-------------: |
+  |      3.04       |      2.83       |      2.98       |
+
+  Se puede observar que la segunda solucion es la mas rapida. El overhead en la primera y tercera se debe a que se esta comparando innecesariamente el elemento en la posicion seleccionada, en el caso de la primera se pregunta para todos los elementos, mientras que en la tercera se hace el otro if.
+
+## Ejercicio 7 (Ejecutado en Escritorio)
+
+Compilar y ejecutar el archivo precision.c que calcula el número de fibonacci para los elementos de un vector de tamaño N. El algoritmo compara el resultado de aplicarlo a elementos de tipo de datos entero respecto a aplicarlo a elementos de coma flotante en simple y doble precisión. Analizar los tiempos obtenidos para cada tipo de datos. ¿Qué conclusiones se pueden obtener del uso de uno u otro tipo de dato?
+
+- Al ejecutar ambos programas con N=1000000000, obtuve los siguientes resultados:
+
+  |  Tipo  | Tiempo Float (sg) | Tiempo Int (sg) | Precision |
+  | :----: | :---------------: | :-------------: | :-------: |
+  | Float  |       5.78        |      9.15       | 17.428832 |
+  | Double |       12.62       |      9.14       |  0.00000  |
+
+  Se puede observar como es mas rapido trabajar con floats pero, tiene peor precision. Mientras que trabajar con doubles es mas lento, pero mas correcto.
+
+## Ejercicio 8 (Ejecutado en Escritorio)
+
+El algoritmo nreinas.c resuelve el problemas de las N Reinas. Entender el problema que resuelve el algoritmo y analizar el comportamiento del tiempo de ejecución a medida que crece N. Probar para N, de uno en uno, desde 4 a 20 ¿Qué orden de ejecución tiene?
+
+- Los resultados obtenidos son los siguientes:
+
+  |  N  | # Resultados | Tiempo (sg) |
+  | :-: | :----------: | :---------: |
+  |  4  |      2       |    0.00     |
+  |  5  |      10      |    0.00     |
+  |  6  |      4       |    0.00     |
+  |  7  |      40      |    0.00     |
+  |  8  |      92      |    0.00     |
+  |  9  |     352      |    0.00     |
+  | 10  |     724      |    0.00     |
+  | 11  |     2680     |    0.00     |
+  | 12  |    14200     |    0.00     |
+  | 13  |    73712     |    0.01     |
+  | 14  |    365596    |    0.04     |
+  | 15  |   2279184    |    0.24     |
+  | 16  |   14772512   |    1.57     |
+  | 17  |   95815104   |    10.90    |
+  | 18  |  666090624   |    79.29    |
+  | 19  |  4968057848  |   610.45    |
+  | 20  | 39029188884  |   4918.23   |
+al 
+  Tiene un orden de ejecucion de O(n!)
 

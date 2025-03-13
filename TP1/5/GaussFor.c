@@ -5,7 +5,8 @@ int main(int argc, char *argv[])
 {
 	unsigned long N = atol(argv[1]);
 	unsigned long sum = 0;
-	int i;
+	// int i; //Default
+	unsigned i;
 
 	for (i = 1; i <= N; i++)
 	{

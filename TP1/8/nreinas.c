@@ -219,11 +219,14 @@ int main(int argC, char *argV[])
     double tIni, tFin;
 
     SIZE = atoi(argV[1]);
-    tIni = dwalltime();
-    NQueens();
-    tFin = dwalltime();
+    for (SIZE = 4; SIZE <= 20; SIZE += 1)
+    {
+        tIni = dwalltime();
+        NQueens();
+        tFin = dwalltime();
+        printf("N=%d - Número de resultados: %lu -  Tiempo Total: %f segundos \n", SIZE, TOTAL, tFin - tIni);
+    }
 
-    printf("Número de resultados: %lu -  Tiempo Total: %f segundos \n", TOTAL, tFin - tIni);
     return 0;
 }
 
