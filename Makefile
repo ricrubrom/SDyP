@@ -2,23 +2,34 @@
 CC = gcc
 TARGET = build
 SRC ?= Fuentes_Practica1/matrices.c
+UTILS = utils/utils.c
 N ?= 16
 AUX ?=
+CFLAGS ?= -O2 -lm  # Optimization and math library
+LDFLAGS ?=  # Additional linking flags if needed
 
-# Compilar el programa
+# Default compilation
 all: $(TARGET)
 
 # Target for default compilation
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+$(TARGET): $(UTILS) $(SRC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(UTILS) $(SRC) $(LDFLAGS)
 
 # Target for single precision
 single: clean
-	$(CC) -O2 -lm -o $(TARGET) $(SRC)
+	$(CC) $(CFLAGS) -o $(TARGET) $(UTILS) $(SRC)
 
 # Target for double precision
 double: clean
-	$(CC) -O2 -DDOUBLE -lm -o $(TARGET) $(SRC)
+	$(CC) $(CFLAGS) -DDOUBLE -o $(TARGET) $(UTILS) $(SRC)
+
+# Target for pthreads
+pthread: clean
+	$(CC) $(CFLAGS) -pthread -o $(TARGET) $(UTILS) $(SRC)
+
+# Target for OpenMP
+openmp: clean
+	$(CC) $(CFLAGS) -fopenmp -o $(TARGET) $(UTILS) $(SRC)
 
 # Ejecutar el programa con argumentos
 run:
@@ -34,12 +45,15 @@ run:
 		./$(TARGET) $(N) $(AUX); \
 	fi
 
+# Ejecutar con diferentes compilaciones
 all-run: all run clean
 single-run: single run clean
 double-run: double run clean
+pthread-run: pthread run clean
+openmp-run: openmp run clean
 
 # Limpiar los archivos generados
 clean:
 	$(RM) $(TARGET)
 
-.PHONY: all clean run single double all-run single-run double-run
+.PHONY: all clean run single double pthread openmp all-run single-run double-run pthread-run openmp-run
