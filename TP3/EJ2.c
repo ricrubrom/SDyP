@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
 
 // Se estan realizando operaciones matematicas en paralelo, por lo que el resultado puede variar
 // Ademas, como es no deterministico, el valor de x puede variar de distintas formas, se puede solucionar poniendo ordered al for
+// No se puede porque deberia ser secuencial para el correcto funcionamiento
 #pragma omp parallel for shared(x) private(i) ordered
 	for (i = 1; i <= N; i++)
 	{
