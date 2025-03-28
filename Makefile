@@ -5,6 +5,7 @@ SRC ?= Fuentes_Practica1/matrices.c
 UTILS = utils/utils.c
 N ?= 16
 AUX ?=
+T?=
 CFLAGS ?= -O2 -lm  # Optimization and math library
 LDFLAGS ?=  # Additional linking flags if needed
 
@@ -33,17 +34,28 @@ openmp: clean
 
 # Ejecutar el programa con argumentos
 run:
-	@if [ -z "$(AUX)" ]; then \
+	@if [ -z "$(AUX)" ] && [ -z "$(T)" ]; then \
 		echo "============================================"; \
 		echo "Ejecutando: ./$(TARGET) $(N)"; \
 		echo "============================================"; \
 		./$(TARGET) $(N); \
-	else \
+	elif [ -z "$(T)" ]; then \
 		echo "============================================"; \
 		echo "Ejecutando: ./$(TARGET) $(N) $(AUX)"; \
 		echo "============================================"; \
 		./$(TARGET) $(N) $(AUX); \
+	elif [ -z "$(AUX)" ]; then \
+		echo "============================================"; \
+		echo "Ejecutando: ./$(TARGET) $(N) $(T)"; \
+		echo "============================================"; \
+		./$(TARGET) $(N) $(T); \
+	else \
+		echo "============================================"; \
+		echo "Ejecutando: ./$(TARGET) $(N) $(T) $(AUX)"; \
+		echo "============================================"; \
+		./$(TARGET) $(N) $(T) $(AUX); \
 	fi
+
 
 # Ejecutar con diferentes compilaciones
 all-run: all run clean

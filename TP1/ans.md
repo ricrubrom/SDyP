@@ -152,7 +152,7 @@ El algoritmo modulo.c compara el tiempo de ejecución de dos versiones para obte
 
 Analizar el algoritmo optForArray.c que inicializa un vector con sus valores en 1 de dos formas. ¿Cuál es más rápida?
 
-- Tomando un N=8192 y R=1000000, obtuve que el direccionamiento a[i] se demoro 2.93sg, mientras que el direccionamiento \*p se demoro 1.63sg, siendo este ultimo mas rapido
+- Tomando un N=8192 y R=1000000, obtuve que el direccionamiento a[i] se demoro 2.93sg, mientras que el direccionamiento \*p se demoro 1.63sg, siendo este ultimo mas rápido
 
 ### B)
 
@@ -166,15 +166,15 @@ El algoritmo overheadIF.c da tres soluciones al siguiente problema: dado un vect
 
 - Para un N=1000000000, obtuve los siguientes tiempos:
 
-  | Solucion 1 (sg) | Solucion 2 (sg) | Solucion 3 (sg) |
+  | Solución 1 (sg) | Solución 2 (sg) | Solución 3 (sg) |
   | :-------------: | :-------------: | :-------------: |
   |      3.04       |      2.83       |      2.98       |
 
-  Se puede observar que la segunda solucion es la mas rapida. El overhead en la primera y tercera se debe a que se esta comparando innecesariamente el elemento en la posicion seleccionada, en el caso de la primera se pregunta para todos los elementos, mientras que en la tercera se hace el otro if.
+  Se puede observar que la segunda solución es la mas rápida. El overhead en la primera y tercera se debe a que se esta comparando innecesariamente el elemento en la posición seleccionada, en el caso de la primera se pregunta para todos los elementos, mientras que en la tercera se hace el otro if.
 
 ## Ejercicio 7 (Ejecutado en Escritorio)
 
-Compilar y ejecutar el archivo precision.c que calcula el número de fibonacci para los elementos de un vector de tamaño N. El algoritmo compara el resultado de aplicarlo a elementos de tipo de datos entero respecto a aplicarlo a elementos de coma flotante en simple y doble precisión. Analizar los tiempos obtenidos para cada tipo de datos. ¿Qué conclusiones se pueden obtener del uso de uno u otro tipo de dato?
+Compilar y ejecutar el archivo precision.c que calcula el número de Fibonacci para los elementos de un vector de tamaño N. El algoritmo compara el resultado de aplicarlo a elementos de tipo de datos entero respecto a aplicarlo a elementos de coma flotante en simple y doble precisión. Analizar los tiempos obtenidos para cada tipo de datos. ¿Qué conclusiones se pueden obtener del uso de uno u otro tipo de dato?
 
 - Al ejecutar ambos programas con N=1000000000, obtuve los siguientes resultados:
 
@@ -183,7 +183,7 @@ Compilar y ejecutar el archivo precision.c que calcula el número de fibonacci p
   | Float  |       5.78        |      9.15       | 17.428832 |
   | Double |       12.62       |      9.14       |  0.00000  |
 
-  Se puede observar como es mas rapido trabajar con floats pero, tiene peor precision. Mientras que trabajar con doubles es mas lento, pero mas correcto.
+  Se puede observar como es mas rápido trabajar con floats pero, tiene peor precision. Mientras que trabajar con doubles es mas lento, pero mas correcto.
 
 ## Ejercicio 8 (Ejecutado en Escritorio)
 
@@ -210,6 +210,6 @@ El algoritmo nreinas.c resuelve el problemas de las N Reinas. Entender el proble
   | 18  |  666090624   |    79.29    |
   | 19  |  4968057848  |   610.45    |
   | 20  | 39029188884  |   4918.23   |
-al 
-  Tiene un orden de ejecucion de O(n!)
+
+  Tiene un orden de ejecución de O(n!)
 
