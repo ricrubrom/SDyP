@@ -4,9 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Time in seconds from some point in the past */
-double dwalltime();
-
 #define MAXSIZE 24
 #define MINSIZE 2
 
@@ -231,13 +228,3 @@ int main(int argC, char *argV[])
 }
 
 #include <sys/time.h>
-
-double dwalltime()
-{
-    double sec;
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    sec = tv.tv_sec + tv.tv_usec / 1000000.0;
-    return sec;
-}

@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Time in seconds from some point in the past */
-double dwalltime();
-
 int main(int argc, char *argv[])
 {
    double *A, *B, *C, *D, *ab, *cd, *tot;

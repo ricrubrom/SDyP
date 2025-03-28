@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* Time in seconds from some point in the past */
-double dwalltime();
-
 int main(int argc, char *argv[])
 {
     double *A, *B, *C, *D, *ba, *ca, *cad, *tot;
@@ -179,13 +176,3 @@ int main(int argc, char *argv[])
 /*****************************************************************/
 
 #include <sys/time.h>
-
-double dwalltime()
-{
-    double sec;
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    sec = tv.tv_sec + tv.tv_usec / 1000000.0;
-    return sec;
-}
