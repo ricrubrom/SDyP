@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
    timetick = dwalltime();
 // Realiza la multiplicacion
-#pragma omp parallel for private(i, j, k)
+#pragma omp parallel for private(i, j, k) shared(A, B, C)
    for (i = 0; i < N; i++)
    {
       for (j = 0; j < N; j++)
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
    // Realiza la multiplicacion
    for (i = 0; i < N; i++)
    {
-#pragma omp parallel for private(j, k)
+#pragma omp parallel for private(j, k) shared(A, B, C)
       for (j = 0; j < N; j++)
       {
          C[i * N + j] = 0;
