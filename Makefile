@@ -1,38 +1,37 @@
 # Variables
-CC = gcc
+CC = mpicc
 TARGET = build
 SRC ?= Fuentes_Practica1/matrices.c
 UTILS = utils/utils.c
 N ?= 16
 AUX ?=
-T?=
-CFLAGS ?= -O2 -lm  # Optimization and math library
-LDFLAGS ?=  # Additional linking flags if needed
+T ?=
+NP ?= 4  # Cantidad de procesos para MPI
+
+CFLAGS ?= -O2 -lm
+LDFLAGS ?=
 
 # Default compilation
 all: $(TARGET)
 
-# Target for default compilation
 $(TARGET): $(UTILS) $(SRC)
 	$(CC) $(CFLAGS) -o $(TARGET) $(UTILS) $(SRC) $(LDFLAGS)
 
-# Target for single precision
 single: clean
 	$(CC) $(CFLAGS) -o $(TARGET) $(UTILS) $(SRC)
 
-# Target for double precision
 double: clean
 	$(CC) $(CFLAGS) -DDOUBLE -o $(TARGET) $(UTILS) $(SRC)
 
-# Target for pthreads
 pthread: clean
 	$(CC) $(CFLAGS) -pthread -o $(TARGET) $(UTILS) $(SRC)
 
-# Target for OpenMP
 openmp: clean
 	$(CC) $(CFLAGS) -fopenmp -o $(TARGET) $(UTILS) $(SRC)
 
-# Ejecutar el programa con argumentos
+mpi: clean
+	$(CC) $(CFLAGS) -DMPI -o $(TARGET) $(UTILS) $(SRC)
+
 run:
 	@if [ -z "$(AUX)" ] && [ -z "$(T)" ]; then \
 		echo "============================================"; \
@@ -56,16 +55,37 @@ run:
 		./$(TARGET) $(N) $(T) $(AUX); \
 	fi
 
+mpi-run: mpi
+	@if [ -z "$(AUX)" ] && [ -z "$(T)" ]; then \
+		echo "============================================"; \
+		echo "Ejecutando con MPI: mpirun -np $(NP) ./$(TARGET) $(N)"; \
+		echo "============================================"; \
+		mpirun -np $(NP) ./$(TARGET) $(N); \
+	elif [ -z "$(T)" ]; then \
+		echo "============================================"; \
+		echo "Ejecutando con MPI: mpirun -np $(NP) ./$(TARGET) $(N) $(AUX)"; \
+		echo "============================================"; \
+		mpirun -np $(NP) ./$(TARGET) $(N) $(AUX); \
+	elif [ -z "$(AUX)" ]; then \
+		echo "============================================"; \
+		echo "Ejecutando con MPI: mpirun -np $(NP) ./$(TARGET) $(N) $(T)"; \
+		echo "============================================"; \
+		mpirun -np $(NP) ./$(TARGET) $(N) $(T); \
+	else \
+		echo "============================================"; \
+		echo "Ejecutando con MPI: mpirun -np $(NP) ./$(TARGET) $(N) $(T) $(AUX)"; \
+		echo "============================================"; \
+		mpirun -np $(NP) ./$(TARGET) $(N) $(T) $(AUX); \
+	fi
 
-# Ejecutar con diferentes compilaciones
 all-run: all run clean
 single-run: single run clean
 double-run: double run clean
 pthread-run: pthread run clean
 openmp-run: openmp run clean
+mpi-run: mpi-run clean
 
-# Limpiar los archivos generados
 clean:
 	$(RM) $(TARGET)
 
-.PHONY: all clean run single double pthread openmp all-run single-run double-run pthread-run openmp-run
+.PHONY: all clean run single double pthread openmp mpi all-run single-run double-run pthread-run openmp-run mpi-run mpi-run-clean
