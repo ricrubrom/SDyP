@@ -54,6 +54,7 @@ run:
 		echo "============================================"; \
 		./$(TARGET) $(N) $(T) $(AUX); \
 	fi
+	$(RM) $(TARGET)  # Eliminar después de ejecutar
 
 mpi-runCode: mpi
 	@if [ -z "$(AUX)" ] && [ -z "$(T)" ]; then \
@@ -77,6 +78,7 @@ mpi-runCode: mpi
 		echo "============================================"; \
 		mpirun -np $(NP) ./$(TARGET) $(N) $(T) $(AUX); \
 	fi
+	$(RM) $(TARGET)  # Eliminar después de ejecutar
 
 all-run: all run clean
 single-run: single run clean

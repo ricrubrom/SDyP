@@ -3,3 +3,4 @@
 *.exe
 build
 *.vscode
+salida_tmp.txt
