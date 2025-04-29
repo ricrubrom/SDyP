@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# Ruta del código fuente que contiene el main
+SRC="TP4/Ej2/Ej2.c"
+
+# Archivo de salida
+output="resultados.csv"
+echo "N,Procesos,Tiempo_Secuencial,Tiempo_Paralelo,Speedup,Eficiencia" > "$output"
+
+# Tamaños de N y cantidad de procesos
+Ns=(512 1024 2048)
+procesos=(2 4 8)
+
+for N in "${Ns[@]}"; do
+    # Compilar para MPI
+    make mpi SRC="$SRC" > /dev/null
+    chmod +x build
+
+    # Ejecutar secuencialmente (1 proceso)
+    mpirun -np 1 ./build "$N" > salida_tmp.txt
+    tiempo_sec=$(grep "Tiempo de ejecución secuencial" salida_tmp.txt | awk '{print $5}')
+
+    for P in "${procesos[@]}"; do
+        if (( N % P != 0 )); then
+            continue
+        fi
+
+        # Ejecutar en paralelo con P procesos
+        mpirun -np "$P" ./build "$N" > salida_tmp.txt
+        tiempo_par=$(grep "Tiempo de ejecución paralelo" salida_tmp.txt | awk '{print $7}')
+        
+        # Cálculo de speedup y eficiencia
+        speedup=$(echo "$tiempo_sec / $tiempo_par" | bc -l)
+        eficiencia=$(echo "($speedup / $P) * 100" | bc -l)
+
+        speedup_fmt=$(printf "%.2f" "$speedup")
+        eficiencia_fmt=$(printf "%.2f" "$eficiencia")
+
+        echo "$N,$P,$tiempo_sec,$tiempo_par,$speedup_fmt,$eficiencia_fmt" >> "$output"
+    done
+done
+
+rm salida_tmp.txt
