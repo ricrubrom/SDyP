@@ -1,0 +1,6 @@
+Tiempo de ejecución secuencial: 0.002213 segundos
+El arreglo está ordenado correctamente.
+Tiempo de ejecución paralelo: 0.000948 segundos
+El arreglo paralelo está ordenado correctamente.
+Speedup: 2.334904
+Eficiencia: 1.167452

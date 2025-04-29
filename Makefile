@@ -8,7 +8,7 @@ AUX ?=
 T ?=
 NP ?= 4  # Cantidad de procesos para MPI
 
-CFLAGS ?= -O2 -lm
+CFLAGS ?= -O3 -lm
 LDFLAGS ?=
 
 # Default compilation
@@ -55,7 +55,7 @@ run:
 		./$(TARGET) $(N) $(T) $(AUX); \
 	fi
 
-mpi-run: mpi
+mpi-runCode: mpi
 	@if [ -z "$(AUX)" ] && [ -z "$(T)" ]; then \
 		echo "============================================"; \
 		echo "Ejecutando con MPI: mpirun -np $(NP) ./$(TARGET) $(N)"; \
@@ -83,7 +83,7 @@ single-run: single run clean
 double-run: double run clean
 pthread-run: pthread run clean
 openmp-run: openmp run clean
-mpi-run: mpi-run clean
+mpi-run: mpi-runCode clean
 
 clean:
 	$(RM) $(TARGET)

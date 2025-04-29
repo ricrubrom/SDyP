@@ -1,33 +1,65 @@
 #!/bin/bash
 
-# Ruta del código fuente que contiene el main
+# Ruta del código fuente que contiene el main, con valor por defecto
 SRC="TP4/Ej2/Ej2.c"
 
 # Archivo de salida
 output="resultados.csv"
 echo "N,Procesos,Tiempo_Secuencial,Tiempo_Paralelo,Speedup,Eficiencia" > "$output"
 
-# Tamaños de N y cantidad de procesos
+# Valores predeterminados
 Ns=(512 1024 2048)
 procesos=(2 4 8)
 
+# Procesar los argumentos pasados desde la terminal
+while getopts "n:p:" opt; do
+  case $opt in
+    n) IFS=',' read -r -a Ns <<< "$OPTARG" ;;  # Convertir la cadena en una lista
+    p) IFS=',' read -r -a procesos <<< "$OPTARG" ;;  # Convertir la cadena en una lista
+    \?) echo "Uso: $0 [-n N1,N2,N3,...] [-p P1,P2,P3,...] [SRC=<ruta>]"
+        exit 1
+        ;;
+  esac
+done
+
+# Procesar el argumento SRC si se pasa en la forma SRC=<ruta>
+for arg in "$@"; do
+  if [[ $arg == SRC=* ]]; then
+    SRC="${arg#SRC=}"
+  fi
+done
+
+echo "Ejecutando con SRC=$SRC"
+
+# Validación de valores numéricos
+is_number() {
+  [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]]
+}
+
 for N in "${Ns[@]}"; do
-    # Compilar para MPI
-    make mpi SRC="$SRC" > /dev/null
-    chmod +x build
-
     # Ejecutar secuencialmente (1 proceso)
-    mpirun -np 1 ./build "$N" > salida_tmp.txt
-    tiempo_sec=$(grep "Tiempo de ejecución secuencial" salida_tmp.txt | awk '{print $5}')
-
     for P in "${procesos[@]}"; do
         if (( N % P != 0 )); then
             continue
         fi
 
         # Ejecutar en paralelo con P procesos
-        mpirun -np "$P" ./build "$N" > salida_tmp.txt
-        tiempo_par=$(grep "Tiempo de ejecución paralelo" salida_tmp.txt | awk '{print $7}')
+        make mpi-run SRC=$SRC N="$N" NP="$P" > salida_tmp.txt
+        
+        # Extraer el tiempo secuencial
+        tiempo_sec=$(grep "Tiempo de ejecución secuencial" salida_tmp.txt | awk '{print $5}')
+        
+        # Extraer el tiempo paralelo
+        tiempo_par=$(grep "Tiempo de ejecución paralelo" salida_tmp.txt | awk '{print $5}')
+        
+        # Validación de tiempos
+        if ! is_number "$tiempo_sec" || ! is_number "$tiempo_par" || [[ -z "$tiempo_sec" ]] || [[ -z "$tiempo_par" ]]; then
+            echo "Error: Uno de los tiempos no es un número válido (N=$N, P=$P)"
+            continue
+        fi
+
+        # Imprimir los tiempos capturados
+        # echo "Tiempos capturados: Secuencial=$tiempo_sec, Paralelo=$tiempo_par"
         
         # Cálculo de speedup y eficiencia
         speedup=$(echo "$tiempo_sec / $tiempo_par" | bc -l)
