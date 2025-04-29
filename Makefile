@@ -1,5 +1,5 @@
 # Variables
-CC = mpicc
+CC = gcc
 TARGET = build
 SRC ?= Fuentes_Practica1/matrices.c
 UTILS = utils/utils.c
@@ -30,7 +30,7 @@ openmp: clean
 	$(CC) $(CFLAGS) -fopenmp -o $(TARGET) $(UTILS) $(SRC)
 
 mpi: clean
-	$(CC) $(CFLAGS) -DMPI -o $(TARGET) $(UTILS) $(SRC)
+	mpicc $(CFLAGS) -DMPI -o $(TARGET) $(UTILS) $(SRC)
 
 run:
 	@if [ -z "$(AUX)" ] && [ -z "$(T)" ]; then \
