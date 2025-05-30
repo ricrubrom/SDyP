@@ -1,0 +1,61 @@
+Ejecutando pthreads con 64 
+Con 1 hilos...
+VALORES FINALES:
+px=-0.20, py=0.04, pz=-0.75
+px=-1.06, py=-0.11, pz=-0.29
+px=-15.70, py=0.67, pz=-10.82
+px=0.17, py=31.29, pz=50.91
+px=-1.63, py=0.17, pz=-3.19
+px=-0.94, py=-0.21, pz=0.71
+px=-0.40, py=0.89, pz=-3.37
+px=-0.06, py=0.66, pz=-3.57
+px=1.78, py=1.91, pz=-0.45
+px=-0.41, py=1.43, pz=-2.20
+
+
+
+Tiempo en segundos: 0.000000
+Con 4 hilos...
+VALORES FINALES:
+px=-0.20, py=0.04, pz=-0.75
+px=-1.06, py=-0.11, pz=-0.29
+px=-15.70, py=0.67, pz=-10.82
+px=0.17, py=31.29, pz=50.91
+px=-1.59, py=0.16, pz=-3.12
+px=-0.92, py=-0.20, pz=0.64
+px=-0.40, py=0.89, pz=-3.37
+px=-0.06, py=0.66, pz=-3.57
+px=1.78, py=1.91, pz=-0.45
+px=-0.41, py=1.43, pz=-2.20
+
+
+
+Tiempo en segundos: 0.000000
+Con 8 hilos...
+VALORES FINALES:
+px=-0.20, py=0.04, pz=-0.75
+px=-1.06, py=-0.11, pz=-0.29
+px=-15.70, py=0.67, pz=-10.82
+px=0.17, py=31.29, pz=50.91
+px=-0.99, py=0.12, pz=-2.12
+px=-0.95, py=-0.22, pz=0.73
+px=-0.40, py=0.89, pz=-3.37
+px=-0.06, py=0.66, pz=-3.57
+px=1.78, py=1.91, pz=-0.45
+px=-0.41, py=1.43, pz=-2.20
+
+
+
+Tiempo en segundos: 0.000000
+Con 16 hilos...
+VALORES FINALES:
+px=-0.20, py=0.04, pz=-0.75
+px=-1.06, py=-0.11, pz=-0.29
+px=-15.70, py=0.67, pz=-10.82
+px=0.17, py=31.29, pz=50.91
+px=-0.98, py=0.12, pz=-2.09
+px=-0.92, py=-0.20, pz=0.64
+px=-0.40, py=0.89, pz=-3.37
+px=-0.06, py=0.66, pz=-3.57
+px=1.78, py=1.91, pz=-0.45
+px=-0.41, py=1.43, pz=-2.20
