@@ -15,7 +15,7 @@
 #include <pthread.h>
 #include "../utils/utils.h"
 
-float tIni, tFin, tTotal;
+double tIni, tFin, tTotal;
 
 //
 // Constantes para OpenGL
@@ -45,21 +45,21 @@ float tIni, tFin, tTotal;
 typedef struct cuerpo cuerpo_t;
 struct cuerpo
 {
-  float masa;
-  float px;
-  float py;
-  float pz;
-  float vx;
-  float vy;
-  float vz;
-  float r;
-  float g;
-  float b;
+  double masa;
+  double px;
+  double py;
+  double pz;
+  double vx;
+  double vy;
+  double vz;
+  double r;
+  double g;
+  double b;
   int cuerpo;
 };
 
-float *fuerza_totalX, *fuerza_totalY, *fuerza_totalZ;
-float *fuerza_localX, *fuerza_localY, *fuerza_localZ;
+double *fuerza_totalX, *fuerza_totalY, *fuerza_totalZ;
+double *fuerza_localX, *fuerza_localY, *fuerza_localZ;
 float toroide_alfa;
 float toroide_theta;
 float toroide_incremento;
@@ -68,12 +68,13 @@ float toroide_r;
 float toroide_R;
 
 cuerpo_t *cuerpos;
-int delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
+float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
 int pasos;
 int N;
 int T;
 
 pthread_barrier_t barrier;
+pthread_mutex_t mutex;
 
 //
 // Funciones para Algoritmo de gravitacion
@@ -84,7 +85,7 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt)
   int cuerpo1, cuerpo2;
   float dif_X, dif_Y, dif_Z;
   float distancia;
-  float F;
+  double F;
 
   for (cuerpo1 = idt; cuerpo1 < N - 1; cuerpo1 += T)
   {
@@ -118,10 +119,10 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt)
   }
 }
 
-void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
+void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
   // Acumular fuerzas locales en un temporal
-  float fx = 0.0f, fy = 0.0f, fz = 0.0f;
+  double fx = 0.0, fy = 0.0, fz = 0.0;
   for (int cuerpo = idt; cuerpo < N; cuerpo += T)
   {
     for (int k = 0; k < T; k++)
@@ -129,36 +130,40 @@ void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
       fx += fuerza_localX[k * N + cuerpo];
       fy += fuerza_localY[k * N + cuerpo];
       fz += fuerza_localZ[k * N + cuerpo];
-      fuerza_localX[k * N + cuerpo] = 0.0f; // Limpiar fuerzas locales
-      fuerza_localY[k * N + cuerpo] = 0.0f;
-      fuerza_localZ[k * N + cuerpo] = 0.0f;
+      fuerza_localX[k * N + cuerpo] = 0.0; // Limpiar fuerzas locales
+      fuerza_localY[k * N + cuerpo] = 0.0;
+      fuerza_localZ[k * N + cuerpo] = 0.0;
     }
 
     // Calcular aceleración (F = ma)
-    float inv_masa = (cuerpos[cuerpo].masa > 0.0f) ? 1.0f / cuerpos[cuerpo].masa : 0.0f;
-    float ax = fx * inv_masa;
-    float ay = fy * inv_masa;
-    // float az = fz * inv_masa;
+    double inv_masa = (cuerpos[cuerpo].masa > 0.0f) ? 1.0f / cuerpos[cuerpo].masa : 0.0f;
+    double ax = fx * inv_masa;
+    double ay = fy * inv_masa;
+    double az = fz * inv_masa;
+
+    // float ax = fx / cuerpos[cuerpo].masa;
+    // float ay = fy / cuerpos[cuerpo].masa;
+    // float az = fz / cuerpos[cuerpo].masa;
 
     // Actualizar velocidad y posición
     cuerpos[cuerpo].vx += ax * dt;
     cuerpos[cuerpo].vy += ay * dt;
-    // cuerpos[cuerpo].vz += az * dt;
+    cuerpos[cuerpo].vz += az * dt;
     cuerpos[cuerpo].px += cuerpos[cuerpo].vx * dt;
     cuerpos[cuerpo].py += cuerpos[cuerpo].vy * dt;
-    // cuerpos[cuerpo].pz += cuerpos[cuerpo].vz * dt;
+    cuerpos[cuerpo].pz += cuerpos[cuerpo].vz * dt;
 
-    fx = 0.0f;
-    fy = 0.0f;
-    fz = 0.0f;
+    fx = 0.0;
+    fy = 0.0;
+    fz = 0.0;
   }
 }
 
-void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
+void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
   calcularFuerzas(cuerpos, N, dt, idt);
   pthread_barrier_wait(&barrier);
-  moverCuerpos(cuerpos, N, dt, idt, paso);
+  moverCuerpos(cuerpos, N, dt, idt);
   pthread_barrier_wait(&barrier);
 }
 
@@ -318,7 +323,7 @@ void *thread(void *arg)
   int paso;
   for (paso = 0; paso < pasos; paso++)
   {
-    gravitacionCPU(cuerpos, N, delta_tiempo, idt, paso);
+    gravitacionCPU(cuerpos, N, delta_tiempo, idt);
   }
 
   pthread_exit(NULL);
@@ -331,7 +336,7 @@ void *thread(void *arg)
 //
 // Variables OpenGL
 //
-float alfa = 0.0;
+double alfa = 0.0;
 
 // Para angulo de rotacion y direccion de la camara
 float angle = 0.0;
@@ -484,8 +489,8 @@ void GL_inicio(void)
 
 void GL_teclado(unsigned char key, int x, int y)
 {
-  float denominador = 50.0;
-  float grados = PI / denominador;
+  double denominador = 50.0;
+  double grados = PI / denominador;
   switch (key)
   {
   case 'a':
@@ -519,8 +524,8 @@ void GL_teclado(unsigned char key, int x, int y)
 
 void GL_teclasEspeciales(int key, int x, int y)
 {
-  float denominador = 50.0;
-  float grados = PI / denominador;
+  double denominador = 50.0;
+  double grados = PI / denominador;
 
   switch (key)
   {
@@ -631,15 +636,16 @@ int main(int argc, char *argv[])
   int threads_ids[T];
 
   pthread_barrier_init(&barrier, NULL, T);
+  pthread_mutex_init(&mutex, NULL);
 
   cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
-  fuerza_totalX = (float *)malloc(sizeof(float) * N);
-  fuerza_totalY = (float *)malloc(sizeof(float) * N);
-  fuerza_totalZ = (float *)malloc(sizeof(float) * N);
+  fuerza_totalX = (double *)malloc(sizeof(double) * N);
+  fuerza_totalY = (double *)malloc(sizeof(double) * N);
+  fuerza_totalZ = (double *)malloc(sizeof(double) * N);
 
-  fuerza_localX = (float *)calloc(T * N, sizeof(float));
-  fuerza_localY = (float *)calloc(T * N, sizeof(float));
-  fuerza_localZ = (float *)calloc(T * N, sizeof(float));
+  fuerza_localX = (double *)calloc(N * T, sizeof(double));
+  fuerza_localY = (double *)calloc(N * T, sizeof(double));
+  fuerza_localZ = (double *)calloc(N * T, sizeof(double));
 
   inicializarCuerpos(cuerpos, N);
 
@@ -651,6 +657,7 @@ int main(int argc, char *argv[])
     pthread_create(&threads[i], NULL, &thread, (void *)&threads_ids[i]);
   }
 
+  // Proceso OpenGL
   procesoOpenGL(argc, argv);
 
   for (i = 0; i < T; i++)
@@ -662,20 +669,17 @@ int main(int argc, char *argv[])
   tTotal = tFin - tIni;
 
   printf("VALORES FINALES:\n");
-  for (int i = N - 10; i < N; i++)
+  for (int i = 0; i < N; i++)
   {
-    printf("Cuerpo %d: px=%.2f, py=%.2f, pz=%.2f, vx=%.2f, vy=%.2f, vz=%.2f\n",
+    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
            i,
            cuerpos[i].px,
            cuerpos[i].py,
-           cuerpos[i].pz,
-           cuerpos[i].vx,
-           cuerpos[i].vy,
-           cuerpos[i].vz);
+           cuerpos[i].pz);
   }
   printf("\n\n\n");
 
-  printf("Tiempo en segundos: %f\n", tTotal);
+  printf("Tiempo en segundos: %.15f\n", tTotal);
 
   finalizar();
   return (0);

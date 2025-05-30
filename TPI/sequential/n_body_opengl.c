@@ -1,21 +1,21 @@
-// Para que funcione en Linux Debian/Ubuntu:
-// 		apt install freeglut3-dev
 // Compilar:
-//		gcc -o n_body_simple n_body_simple.c -lm -lGL -lGLU -lglut
+//		gcc -o n_body_simple_NOGL n_body_simple.c -lm
 // Ejecutar:
-//		./n_body_simple <nro de cuerpos> <DT> <Pasos>
+//		./n_body_simple_NOGL <nro de cuerpos> <DT> <Pasos>
 
-#include <GL/gl.h>
 #include <GL/glut.h>
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
 #include <math.h>
 #include <sys/time.h>
+#include <pthread.h>
 #include "../utils/utils.h"
 
-double tIni, tFin, tTotal = 0;
+double tIni, tFin, tTotal;
 
 //
 // Constantes para OpenGL
@@ -45,20 +45,20 @@ double tIni, tFin, tTotal = 0;
 typedef struct cuerpo cuerpo_t;
 struct cuerpo
 {
-  float masa;
-  float px;
-  float py;
-  float pz;
-  float vx;
-  float vy;
-  float vz;
-  float r;
-  float g;
-  float b;
+  double masa;
+  double px;
+  double py;
+  double pz;
+  double vx;
+  double vy;
+  double vz;
+  double r;
+  double g;
+  double b;
   int cuerpo;
 };
 
-float *fuerza_totalX, *fuerza_totalY, *fuerza_totalZ;
+double *fuerza_totalX, *fuerza_totalY, *fuerza_totalZ;
 float toroide_alfa;
 float toroide_theta;
 float toroide_incremento;
@@ -67,7 +67,7 @@ float toroide_r;
 float toroide_R;
 
 cuerpo_t *cuerpos;
-int delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
+float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
 int pasos;
 int N;
 
@@ -80,7 +80,7 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt)
   int cuerpo1, cuerpo2;
   float dif_X, dif_Y, dif_Z;
   float distancia;
-  float F;
+  double F;
 
   for (cuerpo1 = 0; cuerpo1 < N - 1; cuerpo1++)
   {
@@ -120,19 +120,19 @@ void moverCuerpos(cuerpo_t *cuerpos, int N, int dt)
 
     fuerza_totalX[cuerpo] *= 1 / cuerpos[cuerpo].masa;
     fuerza_totalY[cuerpo] *= 1 / cuerpos[cuerpo].masa;
-    // fuerza_totalZ[cuerpo] *= 1 / cuerpos[cuerpo].masa;
+    fuerza_totalZ[cuerpo] *= 1 / cuerpos[cuerpo].masa;
 
     cuerpos[cuerpo].vx += fuerza_totalX[cuerpo] * dt;
     cuerpos[cuerpo].vy += fuerza_totalY[cuerpo] * dt;
-    // cuerpos[cuerpo].vz += fuerza_totalZ[cuerpo] * dt;
+    cuerpos[cuerpo].vz += fuerza_totalZ[cuerpo] * dt;
 
     cuerpos[cuerpo].px += cuerpos[cuerpo].vx * dt;
     cuerpos[cuerpo].py += cuerpos[cuerpo].vy * dt;
-    // cuerpos[cuerpo].pz += cuerpos[cuerpo].vz * dt;
+    cuerpos[cuerpo].pz += cuerpos[cuerpo].vz * dt;
 
     fuerza_totalX[cuerpo] = 0.0;
     fuerza_totalY[cuerpo] = 0.0;
-    // fuerza_totalZ[cuerpo] = 0.0;
+    fuerza_totalZ[cuerpo] = 0.0;
   }
 }
 
@@ -247,7 +247,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
     fuerza_totalY[cuerpo] = 0.0;
     fuerza_totalZ[cuerpo] = 0.0;
 
-    cuerpos[cuerpo].cuerpo = (rand() % 3);
+    cuerpos[cuerpo].cuerpo = 2; //(rand() % 3);
 
     if (cuerpos[cuerpo].cuerpo == ESTRELLA)
     {
@@ -286,18 +286,6 @@ void finalizar(void)
   free(fuerza_totalX);
   free(fuerza_totalY);
   free(fuerza_totalZ);
-}
-
-// ========================
-// ===== Parallel CPU =====
-// ========================
-
-int nThreads;
-pthread_t *misHilos;
-pthread_barrier_t barrera;
-
-void gravitacionParallelCPU(cuerpo_t *cuerpos, int N, int dt)
-{
 }
 
 // ==================
@@ -603,13 +591,31 @@ int main(int argc, char *argv[])
   pasos = atoi(argv[3]);
 
   cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
-  fuerza_totalX = (float *)malloc(sizeof(float) * N);
-  fuerza_totalY = (float *)malloc(sizeof(float) * N);
-  fuerza_totalZ = (float *)malloc(sizeof(float) * N);
+  fuerza_totalX = (double *)malloc(sizeof(double) * N);
+  fuerza_totalY = (double *)malloc(sizeof(double) * N);
+  fuerza_totalZ = (double *)malloc(sizeof(double) * N);
 
   inicializarCuerpos(cuerpos, N);
 
+  tIni = dwalltime();
+
   procesoOpenGL(argc, argv);
 
+  tFin = dwalltime();
+  tTotal = tFin - tIni;
+
+  printf("VALORES FINALES:\n");
+  for (int i = 0; i < N; i++)
+  {
+    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
+           i,
+           cuerpos[i].px,
+           cuerpos[i].py,
+           cuerpos[i].pz);
+  }
+  printf("\n\n\n");
+  printf("Tiempo en segundos: %f\n", tTotal);
+
+  finalizar();
   return (0);
 }

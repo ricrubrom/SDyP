@@ -32,20 +32,20 @@ double tIni, tFin, tTotal;
 typedef struct cuerpo cuerpo_t;
 struct cuerpo
 {
-  float masa;
-  float px;
-  float py;
-  float pz;
-  float vx;
-  float vy;
-  float vz;
-  float r;
-  float g;
-  float b;
+  double masa;
+  double px;
+  double py;
+  double pz;
+  double vx;
+  double vy;
+  double vz;
+  double r;
+  double g;
+  double b;
   int cuerpo;
 };
 
-float *fuerza_totalX, *fuerza_totalY, *fuerza_totalZ;
+double *fuerza_totalX, *fuerza_totalY, *fuerza_totalZ;
 float toroide_alfa;
 float toroide_theta;
 float toroide_incremento;
@@ -54,7 +54,7 @@ float toroide_r;
 float toroide_R;
 
 cuerpo_t *cuerpos;
-int delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
+float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
 int pasos;
 int N;
 
@@ -67,7 +67,7 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt)
   int cuerpo1, cuerpo2;
   float dif_X, dif_Y, dif_Z;
   float distancia;
-  float F;
+  double F;
 
   for (cuerpo1 = 0; cuerpo1 < N - 1; cuerpo1++)
   {
@@ -289,9 +289,9 @@ int main(int argc, char *argv[])
   pasos = atoi(argv[3]);
 
   cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
-  fuerza_totalX = (float *)malloc(sizeof(float) * N);
-  fuerza_totalY = (float *)malloc(sizeof(float) * N);
-  fuerza_totalZ = (float *)malloc(sizeof(float) * N);
+  fuerza_totalX = (double *)malloc(sizeof(double) * N);
+  fuerza_totalY = (double *)malloc(sizeof(double) * N);
+  fuerza_totalZ = (double *)malloc(sizeof(double) * N);
 
   inicializarCuerpos(cuerpos, N);
 
@@ -307,16 +307,13 @@ int main(int argc, char *argv[])
   tTotal = tFin - tIni;
 
   printf("VALORES FINALES:\n");
-  for (int i = 0; i < 10; i++)
+  for (int i = 0; i < N; i++)
   {
-    printf("Cuerpo %d: px=%.2f, py=%.2f, pz=%.2f, vx=%.15f, vy=%.15f, vz=%.15f\n",
+    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
            i,
            cuerpos[i].px,
            cuerpos[i].py,
-           cuerpos[i].pz,
-           cuerpos[i].vx,
-           cuerpos[i].vy,
-           cuerpos[i].vz);
+           cuerpos[i].pz);
   }
   printf("\n\n\n");
   printf("Tiempo en segundos: %f\n", tTotal);
