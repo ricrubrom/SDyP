@@ -30,7 +30,7 @@ case $tipo in
       ./n_body $nro_cuerpos 200 100000
     else 
       gcc -o n_body sequential/n_body.c utils/utils.c -lm
-      ./n_body $nro_cuerpos 200 1000 > ./n_body.log
+      ./n_body $nro_cuerpos 200 1000 &> ./n_body.log
     fi
     [ -e "n_body" ] && rm n_body
     ;;
@@ -45,14 +45,14 @@ case $tipo in
       ./n_body_pthread $nro_cuerpos 200 100000 8 
     else
       gcc -pthread -o n_body_pthread pthread/n_body_pthread.c utils/utils.c -lm
-      echo "Con 1 hilos..."
-      ./n_body_pthread $nro_cuerpos 200 1000 1 > ./n_body_pthread_1.log
+      # echo "Con 1 hilos..."
+      # ./n_body_pthread $nro_cuerpos 200 1000 1 > ./n_body_pthread_1.log
       echo "Con 4 hilos..."
-      ./n_body_pthread $nro_cuerpos 200 1000 4 > ./n_body_pthread_4.log
+      ./n_body_pthread $nro_cuerpos 200 1000 4 &> ./n_body_pthread_4.log
       echo "Con 8 hilos..."
-      ./n_body_pthread $nro_cuerpos 200 1000 8 > ./n_body_pthread_8.log
-      echo "Con 16 hilos..."
-      ./n_body_pthread $nro_cuerpos 200 1000 16 > ./n_body_pthread_16.log
+      ./n_body_pthread $nro_cuerpos 200 1000 8 &> ./n_body_pthread_8.log
+      # echo "Con 16 hilos..."
+      # ./n_body_pthread $nro_cuerpos 200 1000 16 &> ./n_body_pthread_16.log
     fi
     [ -e "n_body_pthread" ] && rm n_body_pthread
     ;;

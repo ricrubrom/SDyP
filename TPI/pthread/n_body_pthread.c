@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include "../utils/utils.h"
 
-float tIni, tFin, tTotal;
+double tIni, tFin, tTotal;
 
 //
 // Constantes para Algoritmo de gravitacion
