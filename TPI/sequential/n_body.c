@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <stdio.h>
 #include <math.h>
@@ -57,6 +58,7 @@ cuerpo_t *cuerpos;
 float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
 int pasos;
 int N;
+int debug_mode = 0;
 
 //
 // Funciones para Algoritmo de gravitacion
@@ -225,7 +227,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
   toroide_r = 1.0;
   toroide_R = 2 * toroide_r;
 
-  srand(time(NULL));
+  srand(3);
 
   for (cuerpo = 0; cuerpo < N; cuerpo++)
   {
@@ -234,7 +236,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
     fuerza_totalY[cuerpo] = 0.0;
     fuerza_totalZ[cuerpo] = 0.0;
 
-    cuerpos[cuerpo].cuerpo = 2; //(rand() % 3);
+    cuerpos[cuerpo].cuerpo = (rand() % 3);
 
     if (cuerpos[cuerpo].cuerpo == ESTRELLA)
     {
@@ -267,17 +269,8 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
   cuerpos[1].vz = 0.0;
 }
 
-void finalizar(void)
+int inicializar(int argc, char *argv[])
 {
-  free(cuerpos);
-  free(fuerza_totalX);
-  free(fuerza_totalY);
-  free(fuerza_totalZ);
-}
-
-int main(int argc, char *argv[])
-{
-
   if (argc < 4)
   {
     printf("Ejecutar: %s <nro. de cuerpos> <DT> <pasos>\n", argv[0]);
@@ -288,12 +281,48 @@ int main(int argc, char *argv[])
   delta_tiempo = atof(argv[2]);
   pasos = atoi(argv[3]);
 
+  if (argc == 5 && (strcmp(argv[4], "-d") == 0 || strcmp(argv[4], "--debug") == 0))
+  {
+    debug_mode = 1;
+  }
+
   cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
   fuerza_totalX = (double *)malloc(sizeof(double) * N);
   fuerza_totalY = (double *)malloc(sizeof(double) * N);
   fuerza_totalZ = (double *)malloc(sizeof(double) * N);
 
   inicializarCuerpos(cuerpos, N);
+  return 0;
+}
+
+void finalizar(void)
+{
+  free(cuerpos);
+  free(fuerza_totalX);
+  free(fuerza_totalY);
+  free(fuerza_totalZ);
+}
+
+void printResults()
+{
+  printf("VALORES FINALES:\n");
+  for (int i = 0; i < N; i++)
+  {
+    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
+           i,
+           cuerpos[i].px,
+           cuerpos[i].py,
+           cuerpos[i].pz);
+  }
+  printf("\n\n\n");
+}
+
+int main(int argc, char *argv[])
+{
+  if (inicializar(argc, argv) == -1)
+  {
+    return -1;
+  }
 
   tIni = dwalltime();
 
@@ -306,16 +335,11 @@ int main(int argc, char *argv[])
   tFin = dwalltime();
   tTotal = tFin - tIni;
 
-  printf("VALORES FINALES:\n");
-  for (int i = 0; i < N; i++)
+  if (debug_mode)
   {
-    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
-           i,
-           cuerpos[i].px,
-           cuerpos[i].py,
-           cuerpos[i].pz);
+    printResults();
   }
-  printf("\n\n\n");
+
   printf("Tiempo en segundos: %f\n", tTotal);
 
   finalizar();

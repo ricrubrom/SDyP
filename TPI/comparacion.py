@@ -1,16 +1,40 @@
+import os
 import itertools
 import re
 
-# Archivos de entrada
-archivos = {
-    'secuencial': 'n_body.log',
-    'pthreads-1': 'n_body_pthread_1.log',
-    'pthreads-4': 'n_body_pthread_4.log',
-    'pthreads-8': 'n_body_pthread_8.log',
-    'pthreads-16': 'n_body_pthread_16.log'
-}
+# Detectar archivos .log que empiezan con n_body
+todos_los_logs = [f for f in os.listdir(
+    '.') if f.startswith('n_body') and f.endswith('.log')]
 
-# Función para parsear posiciones desde archivos con formato "Cuerpo X: px=..., py=..., pz=..."
+# Diccionario para mantener orden de prioridad
+orden_claves = []
+archivos = {}
+
+for archivo in sorted(todos_los_logs):
+    if archivo == 'n_body.log':
+        clave = 'secuencial'
+    elif 'pthread' in archivo:
+        match = re.search(r'n_body_pthread_(\d+)\.log', archivo)
+        if not match:
+            continue
+        hilos = int(match.group(1))
+        clave = f'pthreads-{hilos:03d}'  # para orden lexicográfico
+    elif 'hybrid' in archivo:
+        match = re.search(r'n_body_hybrid_(\d+)_(\d+)\.log', archivo)
+        if not match:
+            continue
+        maquinas = int(match.group(1))
+        hilos = int(match.group(2))
+        clave = f'hybrid-{maquinas:03d}-{hilos:03d}'
+    else:
+        continue
+    archivos[clave] = archivo
+    orden_claves.append(clave)
+
+# Eliminar duplicados respetando el orden
+orden_claves = list(dict.fromkeys(orden_claves))
+
+# Función para parsear posiciones
 
 
 def cargar_posiciones(path):
@@ -29,17 +53,31 @@ def cargar_posiciones(path):
     return cuerpos
 
 
-# Cargar los datos
-datos = {nombre: cargar_posiciones(path) for nombre, path in archivos.items()}
+# Cargar posiciones
+datos = {nombre: cargar_posiciones(
+    archivos[nombre]) for nombre in orden_claves}
 
-# Comparaciones por pares
-pares = list(itertools.combinations(datos.keys(), 2))
+# Comparaciones ordenadas: secuencial con todos, luego pthreads con restantes, etc.
+comparados = set()
+pares = []
+for i, a in enumerate(orden_claves):
+    for b in orden_claves[i+1:]:
+        if (a, b) not in comparados and (b, a) not in comparados:
+            pares.append((a, b))
+            comparados.add((a, b))
 
+# Generar archivo de comparación
 with open("comparaciones.log", "w") as log:
     for a, b in pares:
         log.write(f"Comparando: {a} vs {b}\n")
         posiciones_a = datos[a]
         posiciones_b = datos[b]
+
+        ids_comunes = set(posiciones_a.keys()) & set(posiciones_b.keys())
+
+        if not ids_comunes:
+            log.write("No hay cuerpos en común entre estos dos archivos.\n\n")
+            continue
 
         max_dif_x = (None, 0.0)
         max_dif_y = (None, 0.0)
@@ -48,10 +86,8 @@ with open("comparaciones.log", "w") as log:
         suma_dif_y = 0.0
         suma_dif_z = 0.0
 
-        num_cuerpos = len(posiciones_a)
-
         log.write(f"{'ID':<5} {'ΔX':>12} {'ΔY':>12} {'ΔZ':>12}\n")
-        for i in range(num_cuerpos):
+        for i in sorted(ids_comunes):
             x1, y1, z1 = posiciones_a[i]
             x2, y2, z2 = posiciones_b[i]
 
@@ -72,6 +108,7 @@ with open("comparaciones.log", "w") as log:
 
             log.write(f"{i:<5} {dx:12.6e} {dy:12.6e} {dz:12.6e}\n")
 
+        num_cuerpos = len(ids_comunes)
         prom_x = suma_dif_x / num_cuerpos
         prom_y = suma_dif_y / num_cuerpos
         prom_z = suma_dif_z / num_cuerpos

@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <stdio.h>
 #include <math.h>
@@ -60,9 +61,9 @@ float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
 int pasos;
 int N;
 int T;
+int debug_mode = 0; // Modo de depuración, 0: sin depuración, 1: con depuración
 
 pthread_barrier_t barrier;
-pthread_mutex_t mutex;
 
 //
 // Funciones para Algoritmo de gravitacion
@@ -251,7 +252,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
   toroide_r = 1.0;
   toroide_R = 2 * toroide_r;
 
-  srand(time(NULL));
+  srand(3);
 
   for (cuerpo = 0; cuerpo < N; cuerpo++)
   {
@@ -260,7 +261,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
     fuerza_totalY[cuerpo] = 0.0;
     fuerza_totalZ[cuerpo] = 0.0;
 
-    cuerpos[cuerpo].cuerpo = 2; //(rand() % 3);
+    cuerpos[cuerpo].cuerpo = (rand() % 3);
 
     if (cuerpos[cuerpo].cuerpo == ESTRELLA)
     {
@@ -293,6 +294,41 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
   cuerpos[1].vz = 0.0;
 }
 
+int inicializar(int argc, char *argv[])
+{
+
+  if (argc < 5)
+  {
+    printf("Ejecutar: %s <nro. de cuerpos> <DT> <pasos> <Threads> (Opcional)< -d/--debug >\n", argv[0]);
+    return -1;
+  }
+
+  N = atoi(argv[1]);
+  delta_tiempo = atof(argv[2]);
+  pasos = atoi(argv[3]);
+
+  T = atoi(argv[4]);
+
+  if (argc == 6 && (strcmp(argv[5], "-d") == 0 || strcmp(argv[5], "--debug") == 0))
+  {
+    debug_mode = 1;
+  }
+
+  pthread_barrier_init(&barrier, NULL, T);
+
+  cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
+  fuerza_totalX = (double *)malloc(sizeof(double) * N);
+  fuerza_totalY = (double *)malloc(sizeof(double) * N);
+  fuerza_totalZ = (double *)malloc(sizeof(double) * N);
+
+  fuerza_localX = (double *)malloc(sizeof(double) * N * T);
+  fuerza_localY = (double *)malloc(sizeof(double) * N * T);
+  fuerza_localZ = (double *)malloc(sizeof(double) * N * T);
+
+  inicializarCuerpos(cuerpos, N);
+  return 0;
+}
+
 void finalizar(void)
 {
   free(cuerpos);
@@ -303,6 +339,20 @@ void finalizar(void)
   free(fuerza_localY);
   free(fuerza_localZ);
   pthread_barrier_destroy(&barrier);
+}
+
+void printResults()
+{
+  printf("VALORES FINALES:\n");
+  for (int i = 0; i < N; i++)
+  {
+    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
+           i,
+           cuerpos[i].px,
+           cuerpos[i].py,
+           cuerpos[i].pz);
+  }
+  printf("\n\n\n");
 }
 
 void *thread(void *arg)
@@ -319,34 +369,13 @@ void *thread(void *arg)
 
 int main(int argc, char *argv[])
 {
-
-  if (argc < 5)
+  if (inicializar(argc, argv) == -1)
   {
-    printf("Ejecutar: %s <nro. de cuerpos> <DT> <pasos> <Threads>\n", argv[0]);
     return -1;
   }
 
-  N = atoi(argv[1]);
-  delta_tiempo = atof(argv[2]);
-  pasos = atoi(argv[3]);
-
-  T = atoi(argv[4]);
   pthread_t threads[T];
   int threads_ids[T];
-
-  pthread_barrier_init(&barrier, NULL, T);
-  pthread_mutex_init(&mutex, NULL);
-
-  cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
-  fuerza_totalX = (double *)malloc(sizeof(double) * N);
-  fuerza_totalY = (double *)malloc(sizeof(double) * N);
-  fuerza_totalZ = (double *)malloc(sizeof(double) * N);
-
-  fuerza_localX = (double *)malloc(sizeof(double) * N * T);
-  fuerza_localY = (double *)malloc(sizeof(double) * N * T);
-  fuerza_localZ = (double *)malloc(sizeof(double) * N * T);
-
-  inicializarCuerpos(cuerpos, N);
 
   tIni = dwalltime();
   int i;
@@ -364,16 +393,10 @@ int main(int argc, char *argv[])
   tFin = dwalltime();
   tTotal = tFin - tIni;
 
-  printf("VALORES FINALES:\n");
-  for (int i = 0; i < N; i++)
+  if (debug_mode)
   {
-    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
-           i,
-           cuerpos[i].px,
-           cuerpos[i].py,
-           cuerpos[i].pz);
+    printResults();
   }
-  printf("\n\n\n");
 
   printf("Tiempo en segundos: %.15f\n", tTotal);
 

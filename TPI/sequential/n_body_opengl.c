@@ -238,7 +238,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
   toroide_r = 1.0;
   toroide_R = 2 * toroide_r;
 
-  srand(time(NULL));
+  srand(3);
 
   for (cuerpo = 0; cuerpo < N; cuerpo++)
   {
@@ -247,7 +247,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
     fuerza_totalY[cuerpo] = 0.0;
     fuerza_totalZ[cuerpo] = 0.0;
 
-    cuerpos[cuerpo].cuerpo = 2; //(rand() % 3);
+    cuerpos[cuerpo].cuerpo(rand() % 3);
 
     if (cuerpos[cuerpo].cuerpo == ESTRELLA)
     {
