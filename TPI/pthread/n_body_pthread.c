@@ -77,10 +77,10 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt)
 
   for (cuerpo1 = idt; cuerpo1 < N - 1; cuerpo1 += T)
   {
-    int idc1 = idt * N + cuerpo1;
+    int idx1 = idt * N + cuerpo1;
     for (cuerpo2 = cuerpo1 + 1; cuerpo2 < N; cuerpo2++)
     {
-      int idc2 = idt * N + cuerpo2;
+      int idx2 = idt * N + cuerpo2;
       if ((cuerpos[cuerpo1].px == cuerpos[cuerpo2].px) && (cuerpos[cuerpo1].py == cuerpos[cuerpo2].py) && (cuerpos[cuerpo1].pz == cuerpos[cuerpo2].pz))
         continue;
 
@@ -96,13 +96,13 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt)
       dif_Y *= F;
       dif_Z *= F;
 
-      fuerza_localX[idc1] += dif_X;
-      fuerza_localY[idc1] += dif_Y;
-      fuerza_localZ[idc1] += dif_Z;
+      fuerza_localX[idx1] += dif_X;
+      fuerza_localY[idx1] += dif_Y;
+      fuerza_localZ[idx1] += dif_Z;
 
-      fuerza_localX[idc2] -= dif_X;
-      fuerza_localY[idc2] -= dif_Y;
-      fuerza_localZ[idc2] -= dif_Z;
+      fuerza_localX[idx2] -= dif_X;
+      fuerza_localY[idx2] -= dif_Y;
+      fuerza_localZ[idx2] -= dif_Z;
     }
   }
 }
@@ -115,12 +115,13 @@ void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt)
   {
     for (int k = 0; k < T; k++)
     {
-      fx += fuerza_localX[k * N + cuerpo];
-      fy += fuerza_localY[k * N + cuerpo];
-      fz += fuerza_localZ[k * N + cuerpo];
-      fuerza_localX[k * N + cuerpo] = 0.0; // Limpiar fuerzas locales
-      fuerza_localY[k * N + cuerpo] = 0.0;
-      fuerza_localZ[k * N + cuerpo] = 0.0;
+      int idx = k * N + cuerpo;
+      fx += fuerza_localX[idx];
+      fy += fuerza_localY[idx];
+      fz += fuerza_localZ[idx];
+      fuerza_localX[idx] = 0.0; // Limpiar fuerzas locales
+      fuerza_localY[idx] = 0.0;
+      fuerza_localZ[idx] = 0.0;
     }
 
     // Calcular aceleración (F = ma)

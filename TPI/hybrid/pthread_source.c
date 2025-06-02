@@ -10,10 +10,19 @@
 #include <math.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <mpi.h>
 #include "../utils/utils.h"
 #include "pthread_source.h"
 
 double tIniLoc, tFinLoc, tTotalLoc;
+
+enum tag
+{
+  CUERPOS,
+  FUERZAS_X,
+  FUERZAS_Y,
+  FUERZAS_Z,
+};
 
 //
 // Constantes para Algoritmo de gravitacion
@@ -49,14 +58,56 @@ pthread_barrier_t barrier;
 // Funciones para Algoritmo de gravitacion
 //
 
-void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt)
+void calcularFuerzasLocales(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
   int cuerpo1, cuerpo2;
   float dif_X, dif_Y, dif_Z;
   float distancia;
   double F;
+  int start = rank * (N - block_size);
+  int end = start + block_size;
 
-  for (cuerpo1 = idt; cuerpo1 < N - 1; cuerpo1 += T)
+  for (cuerpo1 = start + idt; cuerpo1 < end; cuerpo1 += T)
+  {
+    int idc1 = idt * N + cuerpo1;
+    for (cuerpo2 = cuerpo1 + 1; cuerpo2 < end; cuerpo2++)
+    {
+      int idc2 = idt * N + cuerpo2;
+      if ((cuerpos[cuerpo1].px == cuerpos[cuerpo2].px) && (cuerpos[cuerpo1].py == cuerpos[cuerpo2].py) && (cuerpos[cuerpo1].pz == cuerpos[cuerpo2].pz))
+        continue;
+      dif_X = cuerpos[cuerpo2].px - cuerpos[cuerpo1].px;
+      dif_Y = cuerpos[cuerpo2].py - cuerpos[cuerpo1].py;
+      dif_Z = cuerpos[cuerpo2].pz - cuerpos[cuerpo1].pz;
+
+      distancia = sqrt(dif_X * dif_X + dif_Y * dif_Y + dif_Z * dif_Z);
+
+      F = (G * cuerpos[cuerpo1].masa * cuerpos[cuerpo2].masa) / (distancia * distancia);
+
+      dif_X *= F;
+      dif_Y *= F;
+      dif_Z *= F;
+
+      fuerza_localX[idc1] += dif_X;
+      fuerza_localY[idc1] += dif_Y;
+      fuerza_localZ[idc1] += dif_Z;
+
+      fuerza_localX[idc2] -= dif_X;
+      fuerza_localY[idc2] -= dif_Y;
+      fuerza_localZ[idc2] -= dif_Z;
+    }
+  }
+}
+
+void calcularFuerzasExternas(cuerpo_t *cuerpos, int N, int dt, int idt)
+{
+  int cuerpo1, cuerpo2;
+  float dif_X, dif_Y, dif_Z;
+  float distancia;
+  double F;
+  int start = rank * (N - block_size);
+  int end = start + block_size;
+
+  for (cuerpo1 = start + idt; cuerpo1 < end; cuerpo1 += T)
   {
     int idc1 = idt * N + cuerpo1;
     for (cuerpo2 = cuerpo1 + 1; cuerpo2 < N; cuerpo2++)
@@ -90,25 +141,13 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt)
 
 void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
-  // Acumular fuerzas locales en un temporal
-  double fx = 0.0, fy = 0.0, fz = 0.0;
   for (int cuerpo = idt; cuerpo < N; cuerpo += T)
   {
-    for (int k = 0; k < T; k++)
-    {
-      fx += fuerza_localX[k * N + cuerpo];
-      fy += fuerza_localY[k * N + cuerpo];
-      fz += fuerza_localZ[k * N + cuerpo];
-      fuerza_localX[k * N + cuerpo] = 0.0; // Limpiar fuerzas locales
-      fuerza_localY[k * N + cuerpo] = 0.0;
-      fuerza_localZ[k * N + cuerpo] = 0.0;
-    }
-
     // Calcular aceleración (F = ma)
     double inv_masa = (cuerpos[cuerpo].masa > 0.0f) ? 1.0f / cuerpos[cuerpo].masa : 0.0f;
-    double ax = fx * inv_masa;
-    double ay = fy * inv_masa;
-    double az = fz * inv_masa;
+    double ax = fuerza_totalX[cuerpo] * inv_masa;
+    double ay = fuerza_totalY[cuerpo] * inv_masa;
+    double az = fuerza_totalZ[cuerpo] * inv_masa;
 
     // Actualizar velocidad y posición
     cuerpos[cuerpo].vx += ax * dt;
@@ -118,56 +157,100 @@ void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt)
     cuerpos[cuerpo].py += cuerpos[cuerpo].vy * dt;
     cuerpos[cuerpo].pz += cuerpos[cuerpo].vz * dt;
 
-    fx = 0.0;
-    fy = 0.0;
-    fz = 0.0;
+    fuerza_totalX[cuerpo] = 0.0;
+    fuerza_totalY[cuerpo] = 0.0;
+    fuerza_totalZ[cuerpo] = 0.0;
   }
 }
 
-void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt)
+void sumFuerzas(int idt)
 {
   int i;
+  int j;
+  int index;
+  for (i = idt; i < N; i += T)
+  {
+    for (j = 0; j < T; j++)
+    {
+      index = N * j + i;
+      fuerza_totalX[i] += fuerza_localX[index];
+      fuerza_totalY[i] += fuerza_localX[index];
+      fuerza_totalZ[i] += fuerza_localX[index];
+
+      fuerza_localX[index] = 0;
+      fuerza_localY[index] = 0;
+      fuerza_localZ[index] = 0;
+    }
+  }
+}
+
+void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
+{
+  int i;
+  MPI_Request requests_recv[comm_size];
+  MPI_Request requests_send[comm_size];
+  int recv_count = 0, send_count = 0;
+
   if (idt == 0)
   {
-    if (rank == 0)
+    // Recibir cuerpos de procesos con mayor rank
+    for (i = rank + 1; i < comm_size; i++)
     {
-      MPI_Recv();
+      MPI_Irecv(&cuerpos[block_size * i], (N - block_size) * sizeof(cuerpo_t), MPI_BYTE, i, CUERPOS, MPI_COMM_WORLD, &requests_recv[recv_count++]);
     }
-    else
-    {
-      for (int i = rank - 1; i >= 0; i--)
-      {
-        MPI_Send();
-      }
-    }
-  }
-  pthread_barrier_wait(&barrier);
-  calcularFuerzas(cuerpos, N, dt, idt);
-  pthread_barrier_wait(&barrier);
 
-  if (rank == 0)
-  {
-    sumFuerzas();
-    if (idt == 0)
+    // Enviar cuerpos a procesos con menor rank
+    for (i = 0; i < rank; i++)
     {
-      for (i = rank + 1; i <= comm_size; i++)
-      {
-        MPI_Send();
-      }
+      MPI_Isend(&cuerpos[rank * (N - block_size)], block_size * sizeof(cuerpo_t), MPI_BYTE, i, CUERPOS, MPI_COMM_WORLD, &requests_send[send_count++]);
     }
   }
-  else
+
+  pthread_barrier_wait(&barrier);
+  calcularFuerzasLocales(cuerpos, N, dt, idt);
+
+  // Esperar finalización de las comunicaciones
+  if (idt == 0)
   {
-    sumFuerzas();
+    if (recv_count > 0)
+      MPI_Waitall(recv_count, requests_recv, MPI_STATUSES_IGNORE);
+    if (send_count > 0)
+      MPI_Waitall(send_count, requests_send, MPI_STATUSES_IGNORE);
+  }
+
+  pthread_barrier_wait(&barrier);
+  calcularFuerzasExternas(cuerpos, N, dt, idt);
+  pthread_barrier_wait(&barrier);
+  sumFuerzas(idt);
+
+  if (rank > 0)
+  {
     if (idt == 0)
     {
-      for (int i = rank - 1; i >= 0; i--)
-      {
-        MPI_Recv();
-      }
+      MPI_Recv(fuerza_externaX, N, MPI_DOUBLE, rank - 1, FUERZAS_X, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(fuerza_externaY, N, MPI_DOUBLE, rank - 1, FUERZAS_Y, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(fuerza_externaZ, N, MPI_DOUBLE, rank - 1, FUERZAS_Z, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
     pthread_barrier_wait(&barrier);
-    sum_fuerza_externa();
+    for (i = idt; i < N; i += T)
+    {
+      fuerza_totalX[i] += fuerza_externaX[i];
+      fuerza_totalY[i] += fuerza_externaY[i];
+      fuerza_totalZ[i] += fuerza_externaZ[i];
+      fuerza_externaX[i] = 0;
+      fuerza_externaY[i] = 0;
+      fuerza_externaZ[i] = 0;
+    }
+  }
+
+  if (rank < comm_size - 1)
+  {
+    if (idt == 0)
+    {
+      MPI_Send(fuerza_totalX, N, MPI_DOUBLE, rank + 1, FUERZAS_X, MPI_COMM_WORLD);
+      MPI_Send(fuerza_totalY, N, MPI_DOUBLE, rank + 1, FUERZAS_Y, MPI_COMM_WORLD);
+      MPI_Send(fuerza_totalZ, N, MPI_DOUBLE, rank + 1, FUERZAS_Z, MPI_COMM_WORLD);
+    }
   }
 
   pthread_barrier_wait(&barrier);
@@ -190,14 +273,18 @@ int inicializarThread()
 
   if (rank > 0)
   {
-    fuerza_externaX = (double *)malloc(sizeof(double) * N * T);
-    fuerza_externaY = (double *)malloc(sizeof(double) * N * T);
-    fuerza_externaZ = (double *)malloc(sizeof(double) * N * T);
+    fuerza_externaX = (double *)malloc(sizeof(double) * N);
+    fuerza_externaY = (double *)malloc(sizeof(double) * N);
+    fuerza_externaZ = (double *)malloc(sizeof(double) * N);
   }
 
   if (cuerpos == NULL || fuerza_totalX == NULL || fuerza_totalY == NULL || fuerza_totalZ == NULL ||
-      fuerza_localX == NULL || fuerza_localY == NULL || fuerza_localZ == NULL ||
-      fuerza_externaX == NULL || fuerza_externaY == NULL || fuerza_externaZ == NULL)
+      fuerza_localX == NULL || fuerza_localY == NULL || fuerza_localZ == NULL)
+  {
+    fprintf(stderr, "Error al reservar memoria.\n");
+    return -1;
+  }
+  if ((rank > 0) && (fuerza_externaX == NULL || fuerza_externaY == NULL || fuerza_externaZ == NULL))
   {
     fprintf(stderr, "Error al reservar memoria.\n");
     return -1;
@@ -208,7 +295,6 @@ int inicializarThread()
 
 void finalizarThread(void)
 {
-  free(cuerpos);
   free(fuerza_totalX);
   free(fuerza_totalY);
   free(fuerza_totalZ);
@@ -231,7 +317,7 @@ void *thread(void *arg)
 
   for (paso = 0; paso < pasos; paso++)
   {
-    gravitacionCPU(cuerpos, N, delta_tiempo, idt);
+    gravitacionCPU(cuerpos, N, delta_tiempo, idt, paso);
   }
 
   pthread_exit(NULL);
@@ -242,7 +328,6 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
   tIniLoc = dwalltime();
   rank = rank_p;
   N = N_p;
-  cuerpos = cuerpos_p;
   T = T_p;
   delta_tiempo = delta_tiempo_p;
   pasos = pasos_p;
@@ -251,6 +336,7 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
   {
     block_size = 0.25 * N;
   }
+  else
   {
     block_size = 0.75 * N;
   }
@@ -260,6 +346,7 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
     return -1;
   }
 
+  cuerpos = cuerpos_p;
   pthread_t threads[T];
   int threads_ids[T];
 

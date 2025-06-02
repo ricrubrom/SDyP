@@ -97,11 +97,11 @@ case $tipo in
     else
       echo "Ejecutando con 2 maquinas..."
       echo "Con 2 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2 &> ./n_body_hybrid_2_2.log
       echo "Con 4 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4 &> ./n_body_hybrid_2_4.log
       echo "Con 8 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8 &> ./n_body_hybrid_2_8.log
     fi
     [ -e "mpi_pthreads" ] && rm mpi_pthreads
     ;;
@@ -163,6 +163,29 @@ case $tipo in
       fi
     fi
     [ -e "n_body_pthread" ] && rm n_body_pthread
+
+    echo ""
+    echo "Ejecutando híbrido con $nro_cuerpos cuerpos..."
+    mpicc -lpthread -lm -o mpi_pthreads hybrid/mpi_source.c hybrid/pthread_source.c utils/utils.c
+    if $debug; then
+      echo "Debug Activado"
+      echo "Ejecutando con 2 maquinas..."
+      echo "Con 2 hilos..."
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2 -d &> ./n_body_hybrid_2_2.log
+      echo "Con 4 hilos..."
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4 -d &> ./n_body_hybrid_2_4.log
+      echo "Con 8 hilos..."
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8 -d &> ./n_body_hybrid_2_8.log
+    else
+      echo "Ejecutando con 2 maquinas..."
+      echo "Con 2 hilos..."
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2 &> ./n_body_hybrid_2_2.log
+      echo "Con 4 hilos..."
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4 &> ./n_body_hybrid_2_4.log
+      echo "Con 8 hilos..."
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8 &> ./n_body_hybrid_2_8.log
+    fi
+    [ -e "mpi_pthreads" ] && rm mpi_pthreads
 
     echo ""
     if $debug; then
