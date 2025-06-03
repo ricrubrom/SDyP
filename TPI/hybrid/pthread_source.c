@@ -203,7 +203,9 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
   fuerza_externaY = fuerza_externaY_p;
   fuerza_externaZ = fuerza_externaZ_p;
 
-  block_size = (rank == 0) ? 0.25 * N : 0.75 * N;
+  int block_size_rank0 = (int)(0.3 * N);
+  int block_size_rank1 = N - block_size_rank0;
+  block_size = (rank == 0) ? block_size_rank0 : block_size_rank1;
 
   // Inicialización de pthread (no se cuenta como tiempo de cómputo)
   pthread_barrier_init(&barrier, NULL, T);
