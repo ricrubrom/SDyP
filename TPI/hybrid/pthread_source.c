@@ -334,11 +334,11 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
 
   if (rank == 1)
   {
-    MPI_Recv(&cuerpos[0], 25 * sizeof(cuerpo_t), MPI_BYTE, 0, CUERPOS, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    MPI_Recv(cuerpos, (N - block_size) * sizeof(cuerpo_t), MPI_BYTE, 0, CUERPOS, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
   }
   else if (rank == 0)
   {
-    MPI_Send(&cuerpos[0], 25 * sizeof(cuerpo_t), MPI_BYTE, 1, CUERPOS, MPI_COMM_WORLD);
+    MPI_Send(cuerpos, block_size * sizeof(cuerpo_t), MPI_BYTE, 1, CUERPOS, MPI_COMM_WORLD);
   }
   tIniLoc = dwalltime();
   pthread_barrier_destroy(&barrier);

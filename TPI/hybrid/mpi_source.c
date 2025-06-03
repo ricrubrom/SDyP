@@ -353,20 +353,7 @@ int main(int argc, char *argv[])
   MPI_Barrier(MPI_COMM_WORLD);
 
   // Comunicación final solo si hay más de un proceso
-  if (comm_size > 1)
-  {
-    if (rank == 0 && comm_size > 1)
-    {
-      // El proceso 0 recibe los resultados del proceso 1
-      MPI_Recv(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    else if (rank == 1)
-    {
-      // El proceso 1 envía los resultados al proceso 0
-      MPI_Send(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
-    }
-  }
-
+  MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 1, MPI_COMM_WORLD);
   // Otra barrera para asegurar que todas las comunicaciones terminaron
   MPI_Barrier(MPI_COMM_WORLD);
 
