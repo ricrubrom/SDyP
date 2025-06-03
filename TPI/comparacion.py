@@ -8,6 +8,7 @@ todos_los_logs = [f for f in os.listdir(
 # Diccionario para mantener orden de prioridad
 orden_claves = []
 archivos = {}
+tiempos = {}
 
 for archivo in sorted(todos_los_logs):
     if archivo == 'n_body.log':
@@ -27,8 +28,19 @@ for archivo in sorted(todos_los_logs):
         clave = f'hybrid-{maquinas:03d}-{hilos:03d}'
     else:
         continue
+
     archivos[clave] = archivo
     orden_claves.append(clave)
+
+    # Extraer tiempo total del archivo
+    with open(archivo, 'r') as f:
+        for linea in f:
+            if 'Tiempo en segundos' in linea:
+                match = re.search(r"([\d.]+)", linea)
+                if match:
+                    tiempo = float(match.group(1))
+                    tiempos[clave] = tiempo
+                break
 
 # Eliminar duplicados respetando el orden
 orden_claves = list(dict.fromkeys(orden_claves))
@@ -87,10 +99,10 @@ with open("comparaciones.log", "w") as log:
         suma_error_pct_x = 0.0
         suma_error_pct_y = 0.0
         suma_error_pct_z = 0.0
-        eps = 1e-12  # para evitar división por cero
+        eps = 1e-12
 
         log.write(
-            f"{'ID':<5} {'ΔX':>12} {'ΔY':>12} {'ΔZ':>12} {'eX':>12} {'eY':>12} {'eZ':>12}\n")
+            f"{'ID':<3} {'ΔX':>10} {'ΔY':>10} {'ΔZ':>12} {'eX':>10} {'eY':>10} {'eZ':>10}\n")
         for i in sorted(ids_comunes):
             x1, y1, z1 = posiciones_a[i]
             x2, y2, z2 = posiciones_b[i]
@@ -118,8 +130,9 @@ with open("comparaciones.log", "w") as log:
             if dz > max_dif_z[1]:
                 max_dif_z = (i, dz)
 
-            log.write(
-                f"{i:<5} {dx:12.6e} {dy:12.6e} {dz:12.6e} {ex:.6f}% {ey:.6f}% {ez:.6f}%\n")
+            if ex > 0.0000009 or ey > 0.0000009 or ez > 0.0000009:
+                log.write(
+                    f"{i:<5} {dx:12.6e} {dy:12.6e} {dz:12.6e} {ex:.6f}% {ey:.6f}% {ez:.6f}%\n")
 
         num_cuerpos = len(ids_comunes)
         prom_x = suma_dif_x / num_cuerpos
@@ -130,17 +143,48 @@ with open("comparaciones.log", "w") as log:
         prom_pct_y = suma_error_pct_y / num_cuerpos
         prom_pct_z = suma_error_pct_z / num_cuerpos
 
-        log.write("\nResumen:\n")
+        # Cálculo de speedup y eficiencia (solo si uno es secuencial)
+        if 'secuencial' in (a, b):
+            base = 'secuencial'
+            otro = b if a == 'secuencial' else a
+            tiempo_seq = tiempos.get('secuencial', 0.0)
+            tiempo_otro = tiempos.get(otro, 0.0)
+            speedup = tiempo_seq / tiempo_otro if tiempo_otro > 0 else 0
+
+            # Determinar cantidad de hilos/procesos
+            match = re.search(r'(\d+)', otro)
+            procesos = 1
+            hilos = 1
+            if 'pthread' in otro:
+                hilos = int(match.group(1))
+            elif 'hybrid' in otro:
+                match = re.search(r'hybrid-(\d+)-(\d+)', otro)
+                if match:
+                    procesos = int(match.group(1))
+                    hilos = int(match.group(2))
+
+            eficiencia = speedup / (hilos * procesos) * 100
+
+            log.write("\nResumen:\n\n")
+            log.write(f"Cantidad de cuerpos procesados: {num_cuerpos}\n")
+            log.write(f"Tiempo secuencial: {tiempo_seq:.6f} s\n")
+            log.write(f"Tiempo {otro}: {tiempo_otro:.6f} s\n\n\n")
+            log.write(f"Speedup: {speedup:.4f}\n")
+            log.write(f"Eficiencia: {eficiencia:.4f}%\n\n\n")
+        else:
+            log.write("\nResumen:\n")
+            log.write(f"Cantidad de cuerpos procesados: {num_cuerpos}\n\n\n")
+
         log.write(
             f"Máxima diferencia en X: cuerpo {max_dif_x[0]} con ΔX = {max_dif_x[1]:.6e}\n")
         log.write(
             f"Máxima diferencia en Y: cuerpo {max_dif_y[0]} con ΔY = {max_dif_y[1]:.6e}\n")
         log.write(
-            f"Máxima diferencia en Z: cuerpo {max_dif_z[0]} con ΔZ = {max_dif_z[1]:.6e}\n")
+            f"Máxima diferencia en Z: cuerpo {max_dif_z[0]} con ΔZ = {max_dif_z[1]:.6e}\n\n")
         log.write(f"Promedio ΔX = {prom_x:.6e}\n")
         log.write(f"Promedio ΔY = {prom_y:.6e}\n")
-        log.write(f"Promedio ΔZ = {prom_z:.6e}\n")
+        log.write(f"Promedio ΔZ = {prom_z:.6e}\n\n")
         log.write(f"Error porcentual promedio ΔX% = {prom_pct_x:.6f}%\n")
         log.write(f"Error porcentual promedio ΔY% = {prom_pct_y:.6f}%\n")
-        log.write(f"Error porcentual promedio ΔZ% = {prom_pct_z:.6f}%\n")
+        log.write(f"Error porcentual promedio ΔZ% = {prom_pct_z:.6f}%\n\n")
         log.write("-" * 60 + "\n\n")

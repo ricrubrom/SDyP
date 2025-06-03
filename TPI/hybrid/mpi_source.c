@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
     {
       printResults(N, cuerpos);
     }
-    printf("Tiempo total de computo: %.15f segundos\n", tiempo_computo);
+    printf("Tiempo en segundos: %.15f segundos\n", tiempo_computo);
   }
 
   // Limpiar memoria
