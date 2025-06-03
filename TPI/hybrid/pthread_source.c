@@ -24,6 +24,12 @@ enum tag
   FUERZAS_Z,
 };
 
+enum external_flag
+{
+  LOCAL,
+  EXTERNO
+};
+
 //
 // Constantes para Algoritmo de gravitacion
 //
@@ -62,14 +68,13 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt, int externo)
   double F;
   int start = rank * (N - block_size);
   int end = start + block_size;
-  int limite = externo ? N : end;
-
   for (cuerpo1 = start + idt; cuerpo1 < end; cuerpo1 += T)
   {
     int idc1 = idt * N + cuerpo1;
 
     int start2 = externo ? end : cuerpo1 + 1;
-    for (cuerpo2 = start2; cuerpo2 < limite; cuerpo2++)
+    int end2 = externo ? N : end;
+    for (cuerpo2 = start2; cuerpo2 < end2; cuerpo2++)
     {
       int idc2 = idt * N + cuerpo2;
       if ((cuerpos[cuerpo1].px == cuerpos[cuerpo2].px) &&
@@ -102,8 +107,9 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt, int externo)
 
 void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
-  int end = (rank == comm_size - 1) ? N : N - block_size;
-  for (int cuerpo = idt; cuerpo < end; cuerpo += T)
+  int start = rank * (N - block_size);
+  int end = start + block_size;
+  for (int cuerpo = start + idt; cuerpo < end; cuerpo += T)
   {
     // Calcular aceleración (F = ma)
     double inv_masa = (cuerpos[cuerpo].masa > 0.0f) ? 1.0f / cuerpos[cuerpo].masa : 0.0f;
@@ -171,7 +177,7 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
   }
 
   pthread_barrier_wait(&barrier);
-  calcularFuerzas(cuerpos, N, dt, idt, 0);
+  calcularFuerzas(cuerpos, N, dt, idt, LOCAL);
 
   // Esperar finalización de las comunicaciones
   if (idt == 0)
@@ -183,7 +189,7 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
   }
 
   pthread_barrier_wait(&barrier);
-  calcularFuerzas(cuerpos, N, dt, idt, 1);
+  calcularFuerzas(cuerpos, N, dt, idt, EXTERNO);
   pthread_barrier_wait(&barrier);
   sumFuerzas(idt);
 
@@ -261,8 +267,6 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
   pthread_barrier_wait(&barrier);
   moverCuerpos(cuerpos, N, dt, idt);
   pthread_barrier_wait(&barrier);
-  send_count = 0;
-  recv_count = 0;
 }
 
 int inicializarThread()

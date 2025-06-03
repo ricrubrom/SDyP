@@ -268,6 +268,15 @@ int main(int argc, char *argv[])
 
   if (rank == 0)
   {
+    MPI_Recv(&cuerpos[25], 75 * sizeof(cuerpo_t), MPI_BYTE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  }
+  else
+  {
+    MPI_Send(&cuerpos[25], 75 * sizeof(cuerpo_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+  }
+
+  if (rank == 0)
+  {
     if (debug_mode)
     {
       printResults(N, cuerpos);
