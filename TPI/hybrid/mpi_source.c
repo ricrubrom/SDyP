@@ -175,7 +175,6 @@ int inicializar(int argc, char *argv[], int *N, float *delta_tiempo, int *pasos,
     printf("Ejecutar: %s <nro. de cuerpos> <DT> <pasos> <Threads> (Opcional)< -d/--debug >\n", argv[0]);
     return -1;
   }
-
   *N = atoi(argv[1]);
   *delta_tiempo = atof(argv[2]);
   *pasos = atoi(argv[3]);
