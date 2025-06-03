@@ -217,6 +217,7 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
   //   }
   // }
 
+  send_count = 0;
   if (rank < comm_size - 1)
   {
     if (idt == 0)
@@ -233,31 +234,35 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
 
   if (rank > 0)
   {
-    if (idt == 0)
+    for (i = 0; i < rank; i++)
     {
-      MPI_Status status;
+      if (idt == 0)
+      {
+        MPI_Status status;
+        MPI_Recv(fuerza_externaX, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_X, MPI_COMM_WORLD, &status);
+        MPI_Recv(fuerza_externaY, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Y, MPI_COMM_WORLD, &status);
+        MPI_Recv(fuerza_externaZ, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Z, MPI_COMM_WORLD, &status);
+      }
 
-      MPI_Recv(fuerza_externaX, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_X, MPI_COMM_WORLD, &status);
-      MPI_Recv(fuerza_externaY, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Y, MPI_COMM_WORLD, &status);
-      MPI_Recv(fuerza_externaZ, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Z, MPI_COMM_WORLD, &status);
-    }
+      pthread_barrier_wait(&barrier);
 
-    pthread_barrier_wait(&barrier);
-
-    for (i = idt; i < N; i += T)
-    {
-      fuerza_totalX[i] += fuerza_externaX[i];
-      fuerza_totalY[i] += fuerza_externaY[i];
-      fuerza_totalZ[i] += fuerza_externaZ[i];
-      fuerza_externaX[i] = 0;
-      fuerza_externaY[i] = 0;
-      fuerza_externaZ[i] = 0;
+      for (int j = idt; j < N; j += T)
+      {
+        fuerza_totalX[i] += fuerza_externaX[i];
+        fuerza_totalY[i] += fuerza_externaY[i];
+        fuerza_totalZ[i] += fuerza_externaZ[i];
+        fuerza_externaX[i] = 0;
+        fuerza_externaY[i] = 0;
+        fuerza_externaZ[i] = 0;
+      }
     }
   }
 
   pthread_barrier_wait(&barrier);
   moverCuerpos(cuerpos, N, dt, idt);
   pthread_barrier_wait(&barrier);
+  send_count = 0;
+  recv_count = 0;
 }
 
 int inicializarThread()
@@ -265,9 +270,9 @@ int inicializarThread()
   pthread_barrier_init(&barrier, NULL, T);
 
   cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
-  fuerza_totalX = (double *)malloc(sizeof(double) * N);
-  fuerza_totalY = (double *)malloc(sizeof(double) * N);
-  fuerza_totalZ = (double *)malloc(sizeof(double) * N);
+  fuerza_totalX = (double *)calloc(N, sizeof(double));
+  fuerza_totalY = (double *)calloc(N, sizeof(double));
+  fuerza_totalZ = (double *)calloc(N, sizeof(double));
 
   fuerza_localX = (double *)calloc(N * T, sizeof(double));
   fuerza_localY = (double *)calloc(N * T, sizeof(double));
@@ -275,9 +280,9 @@ int inicializarThread()
 
   if (rank > 0)
   {
-    fuerza_externaX = (double *)malloc(sizeof(double) * N);
-    fuerza_externaY = (double *)malloc(sizeof(double) * N);
-    fuerza_externaZ = (double *)malloc(sizeof(double) * N);
+    fuerza_externaX = (double *)calloc(N, sizeof(double));
+    fuerza_externaY = (double *)calloc(N, sizeof(double));
+    fuerza_externaZ = (double *)calloc(N, sizeof(double));
   }
 
   if (cuerpos == NULL || fuerza_totalX == NULL || fuerza_totalY == NULL || fuerza_totalZ == NULL ||
