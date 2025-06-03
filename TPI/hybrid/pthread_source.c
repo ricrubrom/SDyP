@@ -124,10 +124,6 @@ void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt)
     cuerpos[cuerpo].px += cuerpos[cuerpo].vx * dt;
     cuerpos[cuerpo].py += cuerpos[cuerpo].vy * dt;
     cuerpos[cuerpo].pz += cuerpos[cuerpo].vz * dt;
-
-    fuerza_totalX[cuerpo] = 0.0;
-    fuerza_totalY[cuerpo] = 0.0;
-    fuerza_totalZ[cuerpo] = 0.0;
   }
 }
 
@@ -140,6 +136,10 @@ void sumFuerzas(int idt)
 
   for (i = start + idt; i < N; i += T)
   {
+
+    fuerza_totalX[i] = 0.0;
+    fuerza_totalY[i] = 0.0;
+    fuerza_totalZ[i] = 0.0;
     for (j = 0; j < T; j++)
     {
       index = N * j + i;
@@ -223,16 +223,15 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
   //   }
   // }
 
-  send_count = 0;
   if (rank < comm_size - 1)
   {
     if (idt == 0)
     {
       for (i = rank + 1; i < comm_size; i++)
       {
-        MPI_Isend(fuerza_totalX, N, MPI_DOUBLE, i, FUERZAS_X, MPI_COMM_WORLD, &requests_send[send_count++]);
-        MPI_Isend(fuerza_totalY, N, MPI_DOUBLE, i, FUERZAS_Y, MPI_COMM_WORLD, &requests_send[send_count++]);
-        MPI_Isend(fuerza_totalZ, N, MPI_DOUBLE, i, FUERZAS_Z, MPI_COMM_WORLD, &requests_send[send_count++]);
+        MPI_Send(&fuerza_totalX[block_size], N - block_size, MPI_DOUBLE, i, FUERZAS_X, MPI_COMM_WORLD);
+        MPI_Send(&fuerza_totalY[block_size], N - block_size, MPI_DOUBLE, i, FUERZAS_Y, MPI_COMM_WORLD);
+        MPI_Send(&fuerza_totalZ[block_size], N - block_size, MPI_DOUBLE, i, FUERZAS_Z, MPI_COMM_WORLD);
       }
     }
     pthread_barrier_wait(&barrier);
@@ -245,21 +244,19 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
       if (idt == 0)
       {
         MPI_Status status;
-        MPI_Recv(fuerza_externaX, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_X, MPI_COMM_WORLD, &status);
-        MPI_Recv(fuerza_externaY, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Y, MPI_COMM_WORLD, &status);
-        MPI_Recv(fuerza_externaZ, N, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Z, MPI_COMM_WORLD, &status);
+        MPI_Recv(fuerza_externaX, block_size, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_X, MPI_COMM_WORLD, &status);
+        MPI_Recv(fuerza_externaY, block_size, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Y, MPI_COMM_WORLD, &status);
+        MPI_Recv(fuerza_externaZ, block_size, MPI_DOUBLE, MPI_ANY_SOURCE, FUERZAS_Z, MPI_COMM_WORLD, &status);
       }
 
       pthread_barrier_wait(&barrier);
 
-      for (int j = idt; j < N; j += T)
+      for (int j = idt; j < block_size; j += T)
       {
-        fuerza_totalX[i] += fuerza_externaX[i];
-        fuerza_totalY[i] += fuerza_externaY[i];
-        fuerza_totalZ[i] += fuerza_externaZ[i];
-        fuerza_externaX[i] = 0;
-        fuerza_externaY[i] = 0;
-        fuerza_externaZ[i] = 0;
+        int idx = (N - block_size) * rank + j;
+        fuerza_totalX[idx] += fuerza_externaX[j];
+        fuerza_totalY[idx] += fuerza_externaY[j];
+        fuerza_totalZ[idx] += fuerza_externaZ[j];
       }
     }
   }
