@@ -282,10 +282,11 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
   // Broadcast de los cuerpos a todos los procesos
   MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-  double tiempo_declaracion = pthread_function(rank, N, cuerpos, T, delta_tiempo, pasos, comm_size,
-                                               fuerza_totalX, fuerza_totalY, fuerza_totalZ,
-                                               fuerza_localX, fuerza_localY, fuerza_localZ,
-                                               fuerza_externaX, fuerza_externaY, fuerza_externaZ);
+  double tiempo_declaracion = pthread_function(
+      rank, N, cuerpos, T, delta_tiempo, pasos,
+      fuerza_totalX, fuerza_totalY, fuerza_totalZ,
+      fuerza_localX, fuerza_localY, fuerza_localZ,
+      fuerza_externaX, fuerza_externaY, fuerza_externaZ);
 
   // Liberar memoria
   free(fuerza_totalX);
