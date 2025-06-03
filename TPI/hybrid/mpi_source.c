@@ -13,8 +13,6 @@
 #include "../utils/utils.h"
 #include "./pthread_source.h"
 
-double tIni, tFin, tTotal;
-
 //
 // Constantes para Algoritmo de gravitacion
 //
@@ -186,7 +184,7 @@ int inicializar(int argc, char *argv[], int *N, float *delta_tiempo, int *pasos,
     *debug_mode = 1;
   }
 
-  *cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * (*N));
+  *cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * (*N)); // Reserva dinámica para cuerpos
   if (*cuerpos == NULL)
   {
     printf("Error al asignar memoria para cuerpos\n");
@@ -220,14 +218,14 @@ void printResults(int N, cuerpo_t *cuerpos)
 
 double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int pasos, int T, int comm_size)
 {
-  // Allocación de memoria para las fuerzas
-  double *fuerza_totalX = (double *)calloc(N, sizeof(double));
-  double *fuerza_totalY = (double *)calloc(N, sizeof(double));
-  double *fuerza_totalZ = (double *)calloc(N, sizeof(double));
+  // Inicializacion de vectores de fuerzas
+  double *fuerza_totalX = (double *)malloc(N * sizeof(double));
+  double *fuerza_totalY = (double *)malloc(N * sizeof(double));
+  double *fuerza_totalZ = (double *)malloc(N * sizeof(double));
 
-  double *fuerza_localX = (double *)calloc(N * T, sizeof(double));
-  double *fuerza_localY = (double *)calloc(N * T, sizeof(double));
-  double *fuerza_localZ = (double *)calloc(N * T, sizeof(double));
+  double *fuerza_localX = (double *)malloc(N * T * sizeof(double));
+  double *fuerza_localY = (double *)malloc(N * T * sizeof(double));
+  double *fuerza_localZ = (double *)malloc(N * T * sizeof(double));
 
   double *fuerza_externaX = NULL;
   double *fuerza_externaY = NULL;
@@ -235,17 +233,17 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
 
   if (rank > 0)
   {
-    fuerza_externaX = (double *)calloc(N, sizeof(double));
-    fuerza_externaY = (double *)calloc(N, sizeof(double));
-    fuerza_externaZ = (double *)calloc(N, sizeof(double));
+    // Solo los procesos mayores a 0 las necesitan
+    fuerza_externaX = (double *)malloc(N * sizeof(double));
+    fuerza_externaY = (double *)malloc(N * sizeof(double));
+    fuerza_externaZ = (double *)malloc(N * sizeof(double));
   }
 
-  // Verificar allocaciones
   if (fuerza_totalX == NULL || fuerza_totalY == NULL || fuerza_totalZ == NULL ||
       fuerza_localX == NULL || fuerza_localY == NULL || fuerza_localZ == NULL)
   {
     fprintf(stderr, "Error al reservar memoria.\n");
-    // Limpiar memoria parcialmente asignada
+    // Liberación individual de recursos ya reservados
     if (fuerza_totalX)
       free(fuerza_totalX);
     if (fuerza_totalY)
@@ -260,10 +258,10 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
       free(fuerza_localZ);
     return -1;
   }
+
   if ((rank > 0) && (fuerza_externaX == NULL || fuerza_externaY == NULL || fuerza_externaZ == NULL))
   {
     fprintf(stderr, "Error al reservar memoria.\n");
-    // Limpiar toda la memoria asignada
     free(fuerza_totalX);
     free(fuerza_totalY);
     free(fuerza_totalZ);
@@ -279,12 +277,12 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
     return -1;
   }
 
-  // Broadcast de los cuerpos a todos los procesos
+  // Broadcast inicial para distribuir los cuerpos a todos los procesos
   MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-  // AQUÍ EMPIEZA LA MEDICIÓN DEL TIEMPO DE CÓMPUTO PURO
   double tiempo_inicio_computo = dwalltime();
 
+  // Cálculo multithread usando Pthreads
   double tiempo_pthread = pthread_function(
       rank, N, cuerpos, T, delta_tiempo, pasos,
       fuerza_totalX, fuerza_totalY, fuerza_totalZ,
@@ -294,7 +292,7 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
   double tiempo_fin_computo = dwalltime();
   double tiempo_computo_total = tiempo_fin_computo - tiempo_inicio_computo;
 
-  // Liberar memoria
+  // Liberar memoria usada
   free(fuerza_totalX);
   free(fuerza_totalY);
   free(fuerza_totalZ);
@@ -313,20 +311,24 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
 
 int main(int argc, char *argv[])
 {
-
   cuerpo_t *cuerpos = NULL;
-  float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
+  float delta_tiempo = 1.0f;
   int pasos;
   int N;
   int T;
   int rank;
   int comm_size;
   int provided_rank;
-  int debug_mode = 0; // Modo de depuración, 0: sin depuración, 1: con depuración
+  int debug_mode = 0;
   double tiempo_computo = 0.0;
 
-  // Usar MPI_Init simple en lugar de MPI_Init_thread
-  MPI_Init(&argc, &argv);
+  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_rank);
+  if (provided_rank < MPI_THREAD_MULTIPLE)
+  {
+    fprintf(stderr, "MPI no soporta el nivel de concurrencia requerido.\n");
+    MPI_Abort(MPI_COMM_WORLD, -1);
+    return -1;
+  }
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
@@ -355,6 +357,7 @@ int main(int argc, char *argv[])
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
 
+  // El rank 1 recibe el resultado final y lo muestra
   MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 1, MPI_COMM_WORLD);
 
   if (rank == 1)
@@ -366,14 +369,8 @@ int main(int argc, char *argv[])
     printf("Tiempo en segundos: %.15f segundos\n", tiempo_computo);
   }
 
-  // Limpiar memoria
-  if (cuerpos)
-  {
-    free(cuerpos);
-    cuerpos = NULL;
-  }
+  free(cuerpos);
 
-  // Barrera final antes de MPI_Finalize
   MPI_Barrier(MPI_COMM_WORLD);
 
   MPI_Finalize();
