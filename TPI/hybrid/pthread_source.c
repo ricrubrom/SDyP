@@ -266,58 +266,6 @@ void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt, int paso)
   pthread_barrier_wait(&barrier);
 }
 
-int inicializarThread()
-{
-  pthread_barrier_init(&barrier, NULL, T);
-
-  cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
-  fuerza_totalX = (double *)calloc(N, sizeof(double));
-  fuerza_totalY = (double *)calloc(N, sizeof(double));
-  fuerza_totalZ = (double *)calloc(N, sizeof(double));
-
-  fuerza_localX = (double *)calloc(N * T, sizeof(double));
-  fuerza_localY = (double *)calloc(N * T, sizeof(double));
-  fuerza_localZ = (double *)calloc(N * T, sizeof(double));
-
-  if (rank > 0)
-  {
-    fuerza_externaX = (double *)calloc(N, sizeof(double));
-    fuerza_externaY = (double *)calloc(N, sizeof(double));
-    fuerza_externaZ = (double *)calloc(N, sizeof(double));
-  }
-
-  if (cuerpos == NULL || fuerza_totalX == NULL || fuerza_totalY == NULL || fuerza_totalZ == NULL ||
-      fuerza_localX == NULL || fuerza_localY == NULL || fuerza_localZ == NULL)
-  {
-    fprintf(stderr, "Error al reservar memoria.\n");
-    return -1;
-  }
-  if ((rank > 0) && (fuerza_externaX == NULL || fuerza_externaY == NULL || fuerza_externaZ == NULL))
-  {
-    fprintf(stderr, "Error al reservar memoria.\n");
-    return -1;
-  }
-
-  return 0;
-}
-
-void finalizarThread(void)
-{
-  free(fuerza_totalX);
-  free(fuerza_totalY);
-  free(fuerza_totalZ);
-  free(fuerza_localX);
-  free(fuerza_localY);
-  free(fuerza_localZ);
-  if (rank > 0)
-  {
-    free(fuerza_externaX);
-    free(fuerza_externaY);
-    free(fuerza_externaZ);
-  }
-  pthread_barrier_destroy(&barrier);
-}
-
 void *thread(void *arg)
 {
   int idt = *(int *)arg;
@@ -331,7 +279,10 @@ void *thread(void *arg)
   pthread_exit(NULL);
 }
 
-double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float delta_tiempo_p, int pasos_p, int comm_size_p)
+double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float delta_tiempo_p, int pasos_p, int comm_size_p,
+                        double *fuerza_totalX_p, double *fuerza_totalY_p, double *fuerza_totalZ_p,
+                        double *fuerza_localX_p, double *fuerza_localY_p, double *fuerza_localZ_p,
+                        double *fuerza_externaX_p, double *fuerza_externaY_p, double *fuerza_externaZ_p)
 {
   tIniLoc = dwalltime();
   rank = rank_p;
@@ -340,6 +291,19 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
   delta_tiempo = delta_tiempo_p;
   pasos = pasos_p;
   comm_size = comm_size_p;
+
+  // Asignar punteros de memoria pasados como parámetros
+  cuerpos = cuerpos_p;
+  fuerza_totalX = fuerza_totalX_p;
+  fuerza_totalY = fuerza_totalY_p;
+  fuerza_totalZ = fuerza_totalZ_p;
+  fuerza_localX = fuerza_localX_p;
+  fuerza_localY = fuerza_localY_p;
+  fuerza_localZ = fuerza_localZ_p;
+  fuerza_externaX = fuerza_externaX_p;
+  fuerza_externaY = fuerza_externaY_p;
+  fuerza_externaZ = fuerza_externaZ_p;
+
   if (rank == 0)
   {
     block_size = 0.25 * N;
@@ -349,12 +313,8 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
     block_size = 0.75 * N;
   }
 
-  if (inicializarThread() == -1)
-  {
-    return -1;
-  }
+  pthread_barrier_init(&barrier, NULL, T);
 
-  cuerpos = cuerpos_p;
   pthread_t threads[T];
   int threads_ids[T];
 
@@ -372,10 +332,16 @@ double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float
     pthread_join(threads[i], NULL);
   }
 
-  cuerpos_p = cuerpos;
-
+  if (rank == 1)
+  {
+    MPI_Recv(&cuerpos[0], 25 * sizeof(cuerpo_t), MPI_BYTE, 0, CUERPOS, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  }
+  else if (rank == 0)
+  {
+    MPI_Send(&cuerpos[0], 25 * sizeof(cuerpo_t), MPI_BYTE, 1, CUERPOS, MPI_COMM_WORLD);
+  }
   tIniLoc = dwalltime();
-  finalizarThread();
+  pthread_barrier_destroy(&barrier);
   tFinLoc = dwalltime();
   tTotalLoc += tFinLoc - tIniLoc;
   return tTotalLoc;

@@ -226,7 +226,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
   toroide_r = 1.0;
   toroide_R = 2 * toroide_r;
 
-  srand(3);
+  srand(1);
 
   for (cuerpo = 0; cuerpo < N; cuerpo++)
   {

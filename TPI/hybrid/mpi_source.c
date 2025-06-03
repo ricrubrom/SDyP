@@ -130,7 +130,7 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
   toroide_r = 1.0;
   toroide_R = 2 * toroide_r;
 
-  srand(3);
+  srand(1);
 
   for (cuerpo = 0; cuerpo < N; cuerpo++)
 
@@ -198,7 +198,10 @@ int inicializar(int argc, char *argv[], int *N, float *delta_tiempo, int *pasos,
 
 void finalizar(cuerpo_t *cuerpos)
 {
-  free(cuerpos);
+  if (cuerpos != NULL)
+  {
+    free(cuerpos);
+  }
 }
 
 void printResults(int N, cuerpo_t *cuerpos)
@@ -217,22 +220,94 @@ void printResults(int N, cuerpo_t *cuerpos)
 
 double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int pasos, int T, int comm_size)
 {
+  // Allocación de memoria para las fuerzas
+  double *fuerza_totalX = (double *)calloc(N, sizeof(double));
+  double *fuerza_totalY = (double *)calloc(N, sizeof(double));
+  double *fuerza_totalZ = (double *)calloc(N, sizeof(double));
+
+  double *fuerza_localX = (double *)calloc(N * T, sizeof(double));
+  double *fuerza_localY = (double *)calloc(N * T, sizeof(double));
+  double *fuerza_localZ = (double *)calloc(N * T, sizeof(double));
+
+  double *fuerza_externaX = NULL;
+  double *fuerza_externaY = NULL;
+  double *fuerza_externaZ = NULL;
+
+  if (rank > 0)
+  {
+    fuerza_externaX = (double *)calloc(N, sizeof(double));
+    fuerza_externaY = (double *)calloc(N, sizeof(double));
+    fuerza_externaZ = (double *)calloc(N, sizeof(double));
+  }
+
+  // Verificar allocaciones
+  if (fuerza_totalX == NULL || fuerza_totalY == NULL || fuerza_totalZ == NULL ||
+      fuerza_localX == NULL || fuerza_localY == NULL || fuerza_localZ == NULL)
+  {
+    fprintf(stderr, "Error al reservar memoria.\n");
+    // Limpiar memoria parcialmente asignada
+    if (fuerza_totalX)
+      free(fuerza_totalX);
+    if (fuerza_totalY)
+      free(fuerza_totalY);
+    if (fuerza_totalZ)
+      free(fuerza_totalZ);
+    if (fuerza_localX)
+      free(fuerza_localX);
+    if (fuerza_localY)
+      free(fuerza_localY);
+    if (fuerza_localZ)
+      free(fuerza_localZ);
+    return -1;
+  }
+  if ((rank > 0) && (fuerza_externaX == NULL || fuerza_externaY == NULL || fuerza_externaZ == NULL))
+  {
+    fprintf(stderr, "Error al reservar memoria.\n");
+    // Limpiar toda la memoria asignada
+    free(fuerza_totalX);
+    free(fuerza_totalY);
+    free(fuerza_totalZ);
+    free(fuerza_localX);
+    free(fuerza_localY);
+    free(fuerza_localZ);
+    if (fuerza_externaX)
+      free(fuerza_externaX);
+    if (fuerza_externaY)
+      free(fuerza_externaY);
+    if (fuerza_externaZ)
+      free(fuerza_externaZ);
+    return -1;
+  }
+
+  // Broadcast de los cuerpos a todos los procesos
   MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-  int tiempo_declaracion = pthread_function(rank, N, cuerpos, T, delta_tiempo, pasos, comm_size);
-  if (tiempo_declaracion == -1)
+  double tiempo_declaracion = pthread_function(rank, N, cuerpos, T, delta_tiempo, pasos, comm_size,
+                                               fuerza_totalX, fuerza_totalY, fuerza_totalZ,
+                                               fuerza_localX, fuerza_localY, fuerza_localZ,
+                                               fuerza_externaX, fuerza_externaY, fuerza_externaZ);
+
+  // Liberar memoria
+  free(fuerza_totalX);
+  free(fuerza_totalY);
+  free(fuerza_totalZ);
+  free(fuerza_localX);
+  free(fuerza_localY);
+  free(fuerza_localZ);
+  if (rank > 0)
   {
-    printf("Error en pthread_function\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
+    free(fuerza_externaX);
+    free(fuerza_externaY);
+    free(fuerza_externaZ);
   }
-  else
-    return tiempo_declaracion;
+
+  return tiempo_declaracion;
 }
 
 int main(int argc, char *argv[])
 {
 
-  cuerpo_t *cuerpos;
+  cuerpo_t *cuerpos = NULL;
   float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
   int pasos;
   int N;
@@ -241,19 +316,19 @@ int main(int argc, char *argv[])
   int comm_size;
   int provided_rank;
   int debug_mode = 0; // Modo de depuración, 0: sin depuración, 1: con depuración
+  double tiempo_computo = 0.0;
 
-  MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided_rank);
-  if (provided_rank != MPI_THREAD_MULTIPLE)
-  {
-    printf("El entorno MPI no soporta el nivel de concurrencia requerido.\n");
-    MPI_Abort(MPI_COMM_WORLD, -1);
-  }
+  // Usar MPI_Init simple en lugar de MPI_Init_thread
+  MPI_Init(&argc, &argv);
 
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
 
   if (inicializar(argc, argv, &N, &delta_tiempo, &pasos, &T, &debug_mode, &cuerpos) == -1)
   {
+    if (cuerpos)
+      free(cuerpos);
+    MPI_Finalize();
     return -1;
   }
 
@@ -262,18 +337,41 @@ int main(int argc, char *argv[])
     inicializarCuerpos(cuerpos, N);
     tIni = dwalltime();
   }
-  tIni += mpi_function(rank, cuerpos, N, delta_tiempo, pasos, T, comm_size);
-  tFin = dwalltime();
-  tTotal = tFin - tIni;
 
-  if (rank == 0)
+  tiempo_computo = mpi_function(rank, cuerpos, N, delta_tiempo, pasos, T, comm_size);
+
+  if (tiempo_computo == -1)
   {
-    MPI_Recv(&cuerpos[25], 75 * sizeof(cuerpo_t), MPI_BYTE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    if (rank == 0)
+      printf("Error en pthread_function\n");
+    if (cuerpos)
+      free(cuerpos);
+    MPI_Abort(MPI_COMM_WORLD, -1);
   }
-  else
+
+  // Sincronizar todos los procesos
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  // Comunicación final solo si hay más de un proceso
+  if (comm_size > 1)
   {
-    MPI_Send(&cuerpos[25], 75 * sizeof(cuerpo_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+    if (rank == 0 && comm_size > 1)
+    {
+      // El proceso 0 recibe los resultados del proceso 1
+      MPI_Recv(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
+    else if (rank == 1)
+    {
+      // El proceso 1 envía los resultados al proceso 0
+      MPI_Send(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 0, 0, MPI_COMM_WORLD);
+    }
   }
+
+  // Otra barrera para asegurar que todas las comunicaciones terminaron
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  tFin = dwalltime();
+  tTotal = tFin - tIni + tiempo_computo;
 
   if (rank == 0)
   {
@@ -284,7 +382,16 @@ int main(int argc, char *argv[])
     printf("Tiempo en segundos: %.15f\n", tTotal);
   }
 
-  finalizar(cuerpos);
+  // Limpiar memoria
+  if (cuerpos)
+  {
+    free(cuerpos);
+    cuerpos = NULL;
+  }
+
+  // Barrera final antes de MPI_Finalize
+  MPI_Barrier(MPI_COMM_WORLD);
+
   MPI_Finalize();
-  return (0);
+  return 0;
 }

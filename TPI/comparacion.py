@@ -89,7 +89,8 @@ with open("comparaciones.log", "w") as log:
         suma_error_pct_z = 0.0
         eps = 1e-12  # para evitar división por cero
 
-        log.write(f"{'ID':<5} {'ΔX':>12} {'ΔY':>12} {'ΔZ':>12}\n")
+        log.write(
+            f"{'ID':<5} {'ΔX':>12} {'ΔY':>12} {'ΔZ':>12} {'eX':>12} {'eY':>12} {'eZ':>12}\n")
         for i in sorted(ids_comunes):
             x1, y1, z1 = posiciones_a[i]
             x2, y2, z2 = posiciones_b[i]
@@ -102,9 +103,13 @@ with open("comparaciones.log", "w") as log:
             suma_dif_y += dy
             suma_dif_z += dz
 
-            suma_error_pct_x += (dx / (abs(x1) + eps)) * 100
-            suma_error_pct_y += (dy / (abs(y1) + eps)) * 100
-            suma_error_pct_z += (dz / (abs(z1) + eps)) * 100
+            ex = (dx / (abs(x1) + eps)) * 100
+            ey = (dy / (abs(y1) + eps)) * 100
+            ez = (dz / (abs(z1) + eps)) * 100
+
+            suma_error_pct_x += ex
+            suma_error_pct_y += ey
+            suma_error_pct_z += ez
 
             if dx > max_dif_x[1]:
                 max_dif_x = (i, dx)
@@ -113,7 +118,8 @@ with open("comparaciones.log", "w") as log:
             if dz > max_dif_z[1]:
                 max_dif_z = (i, dz)
 
-            log.write(f"{i:<5} {dx:12.6e} {dy:12.6e} {dz:12.6e}\n")
+            log.write(
+                f"{i:<5} {dx:12.6e} {dy:12.6e} {dz:12.6e} {ex:.6f}% {ey:.6f}% {ez:.6f}%\n")
 
         num_cuerpos = len(ids_comunes)
         prom_x = suma_dif_x / num_cuerpos
