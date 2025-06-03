@@ -204,19 +204,19 @@ void finalizar(cuerpo_t *cuerpos)
   }
 }
 
-void printResults(int N, cuerpo_t *cuerpos)
-{
-  printf("VALORES FINALES:\n");
-  for (int i = 0; i < N; i++)
-  {
-    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
-           i,
-           cuerpos[i].px,
-           cuerpos[i].py,
-           cuerpos[i].pz);
-  }
-  printf("\n\n\n");
-}
+// void printResults(int N, cuerpo_t *cuerpos)
+// {
+//   printf("VALORES FINALES:\n");
+//   for (int i = 0; i < N; i++)
+//   {
+//     printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
+//            i,
+//            cuerpos[i].px,
+//            cuerpos[i].py,
+//            cuerpos[i].pz);
+//   }
+//   printf("\n\n\n");
+// }
 
 double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int pasos, int T, int comm_size)
 {
@@ -360,15 +360,6 @@ int main(int argc, char *argv[])
 
   tFin = dwalltime();
   tTotal = tFin - tIni + tiempo_computo;
-
-  if (rank == 0)
-  {
-    if (debug_mode)
-    {
-      printResults(N, cuerpos);
-    }
-    printf("Tiempo en segundos: %.15f\n", tTotal);
-  }
 
   // Limpiar memoria
   if (cuerpos)
