@@ -1,5 +1,4 @@
 import os
-import itertools
 import re
 
 # Detectar archivos .log que empiezan con n_body
@@ -18,7 +17,7 @@ for archivo in sorted(todos_los_logs):
         if not match:
             continue
         hilos = int(match.group(1))
-        clave = f'pthreads-{hilos:03d}'  # para orden lexicográfico
+        clave = f'pthreads-{hilos:03d}'
     elif 'hybrid' in archivo:
         match = re.search(r'n_body_hybrid_(\d+)_(\d+)\.log', archivo)
         if not match:
@@ -57,7 +56,7 @@ def cargar_posiciones(path):
 datos = {nombre: cargar_posiciones(
     archivos[nombre]) for nombre in orden_claves}
 
-# Comparaciones ordenadas: secuencial con todos, luego pthreads con restantes, etc.
+# Comparaciones ordenadas
 comparados = set()
 pares = []
 for i, a in enumerate(orden_claves):
@@ -85,6 +84,10 @@ with open("comparaciones.log", "w") as log:
         suma_dif_x = 0.0
         suma_dif_y = 0.0
         suma_dif_z = 0.0
+        suma_error_pct_x = 0.0
+        suma_error_pct_y = 0.0
+        suma_error_pct_z = 0.0
+        eps = 1e-12  # para evitar división por cero
 
         log.write(f"{'ID':<5} {'ΔX':>12} {'ΔY':>12} {'ΔZ':>12}\n")
         for i in sorted(ids_comunes):
@@ -98,6 +101,10 @@ with open("comparaciones.log", "w") as log:
             suma_dif_x += dx
             suma_dif_y += dy
             suma_dif_z += dz
+
+            suma_error_pct_x += (dx / (abs(x1) + eps)) * 100
+            suma_error_pct_y += (dy / (abs(y1) + eps)) * 100
+            suma_error_pct_z += (dz / (abs(z1) + eps)) * 100
 
             if dx > max_dif_x[1]:
                 max_dif_x = (i, dx)
@@ -113,6 +120,10 @@ with open("comparaciones.log", "w") as log:
         prom_y = suma_dif_y / num_cuerpos
         prom_z = suma_dif_z / num_cuerpos
 
+        prom_pct_x = suma_error_pct_x / num_cuerpos
+        prom_pct_y = suma_error_pct_y / num_cuerpos
+        prom_pct_z = suma_error_pct_z / num_cuerpos
+
         log.write("\nResumen:\n")
         log.write(
             f"Máxima diferencia en X: cuerpo {max_dif_x[0]} con ΔX = {max_dif_x[1]:.6e}\n")
@@ -123,4 +134,7 @@ with open("comparaciones.log", "w") as log:
         log.write(f"Promedio ΔX = {prom_x:.6e}\n")
         log.write(f"Promedio ΔY = {prom_y:.6e}\n")
         log.write(f"Promedio ΔZ = {prom_z:.6e}\n")
+        log.write(f"Error porcentual promedio ΔX% = {prom_pct_x:.6f}%\n")
+        log.write(f"Error porcentual promedio ΔY% = {prom_pct_y:.6f}%\n")
+        log.write(f"Error porcentual promedio ΔZ% = {prom_pct_z:.6f}%\n")
         log.write("-" * 60 + "\n\n")
