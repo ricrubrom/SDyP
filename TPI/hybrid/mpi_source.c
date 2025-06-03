@@ -204,19 +204,19 @@ void finalizar(cuerpo_t *cuerpos)
   }
 }
 
-// void printResults(int N, cuerpo_t *cuerpos)
-// {
-//   printf("VALORES FINALES:\n");
-//   for (int i = 0; i < N; i++)
-//   {
-//     printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
-//            i,
-//            cuerpos[i].px,
-//            cuerpos[i].py,
-//            cuerpos[i].pz);
-//   }
-//   printf("\n\n\n");
-// }
+void printResults(int N, cuerpo_t *cuerpos)
+{
+  printf("VALORES FINALES:\n");
+  for (int i = 0; i < N; i++)
+  {
+    printf("Cuerpo %d: px=%.15f, py=%.15f, pz=%.15f\n",
+           i,
+           cuerpos[i].px,
+           cuerpos[i].py,
+           cuerpos[i].pz);
+  }
+  printf("\n\n\n");
+}
 
 double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int pasos, int T, int comm_size)
 {
@@ -282,11 +282,17 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
   // Broadcast de los cuerpos a todos los procesos
   MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-  double tiempo_declaracion = pthread_function(
+  // AQUÍ EMPIEZA LA MEDICIÓN DEL TIEMPO DE CÓMPUTO PURO
+  double tiempo_inicio_computo = dwalltime();
+
+  double tiempo_pthread = pthread_function(
       rank, N, cuerpos, T, delta_tiempo, pasos,
       fuerza_totalX, fuerza_totalY, fuerza_totalZ,
       fuerza_localX, fuerza_localY, fuerza_localZ,
       fuerza_externaX, fuerza_externaY, fuerza_externaZ);
+
+  double tiempo_fin_computo = dwalltime();
+  double tiempo_computo_total = tiempo_fin_computo - tiempo_inicio_computo;
 
   // Liberar memoria
   free(fuerza_totalX);
@@ -302,7 +308,7 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
     free(fuerza_externaZ);
   }
 
-  return tiempo_declaracion;
+  return tiempo_computo_total;
 }
 
 int main(int argc, char *argv[])
@@ -336,7 +342,6 @@ int main(int argc, char *argv[])
   if (rank == 0)
   {
     inicializarCuerpos(cuerpos, N);
-    tIni = dwalltime();
   }
 
   tiempo_computo = mpi_function(rank, cuerpos, N, delta_tiempo, pasos, T, comm_size);
@@ -350,16 +355,16 @@ int main(int argc, char *argv[])
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
 
-  // Sincronizar todos los procesos
-  MPI_Barrier(MPI_COMM_WORLD);
-
-  // Comunicación final solo si hay más de un proceso
   MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 1, MPI_COMM_WORLD);
-  // Otra barrera para asegurar que todas las comunicaciones terminaron
-  MPI_Barrier(MPI_COMM_WORLD);
 
-  tFin = dwalltime();
-  tTotal = tFin - tIni + tiempo_computo;
+  if (rank == 1)
+  {
+    if (debug_mode)
+    {
+      printResults(N, cuerpos);
+    }
+    printf("Tiempo total de computo: %.15f segundos\n", tiempo_computo);
+  }
 
   // Limpiar memoria
   if (cuerpos)
