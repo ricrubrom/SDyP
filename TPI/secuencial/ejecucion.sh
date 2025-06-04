@@ -12,4 +12,4 @@ if [ $# -ne 1 ]; then
 fi
 
 N=$1
-./n_body_seq $N 200 1000
+./n_body $N 200 1000

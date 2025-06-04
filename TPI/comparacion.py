@@ -1,5 +1,6 @@
 import os
 import re
+import numpy as np
 
 # Detectar archivos .log que empiezan con n_body
 todos_los_logs = [f for f in os.listdir(
@@ -38,7 +39,7 @@ for archivo in sorted(todos_los_logs):
             if 'Tiempo en segundos' in linea:
                 match = re.search(r"([\d.]+)", linea)
                 if match:
-                    tiempo = float(match.group(1))
+                    tiempo = np.float128(match.group(1))
                     tiempos[clave] = tiempo
                 break
 
@@ -57,9 +58,9 @@ def cargar_posiciones(path):
             match = patron.match(linea.strip())
             if match:
                 id_cuerpo = int(match.group(1))
-                px = float(match.group(2))
-                py = float(match.group(3))
-                pz = float(match.group(4))
+                px = np.float128(match.group(2))
+                py = np.float128(match.group(3))
+                pz = np.float128(match.group(4))
                 cuerpos[id_cuerpo] = (px, py, pz)
     return cuerpos
 
