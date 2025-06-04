@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH -N 1
+#SBATCH -N 2
 #SBATCH --exclusive
-#SBATCH --tasks-per-node=8
+#SBATCH --tasks-per-node=1
 #SBATCH --open-mode=append
 #SBATCH -o salida_hibrido/output.txt
 #SBATCH -e salida_hibrido/errors.txt
