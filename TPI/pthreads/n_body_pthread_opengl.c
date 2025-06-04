@@ -411,6 +411,7 @@ void GL_dibujarCuerpos(void)
   pasos--;
   if (pasos == 0)
   {
+    printf("N= %d\n T=%d\n", N, T);
     printf("Tiempo en segundos: %f\n", tTotal);
     finalizar();
     exit(0);
@@ -678,6 +679,7 @@ int main(int argc, char *argv[])
   }
   printf("\n\n\n");
 
+  printf("N= %d\nT=%d\n", N, T);
   printf("Tiempo en segundos: %.15f\n", tTotal);
 
   finalizar();

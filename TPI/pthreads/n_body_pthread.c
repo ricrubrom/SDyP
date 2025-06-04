@@ -9,6 +9,7 @@
 #include <time.h>
 #include <math.h>
 #include <sys/time.h>
+#include <pthread.h>
 #include "../utils/utils.h"
 
 double tIni, tFin, tTotal;
@@ -46,6 +47,7 @@ struct cuerpo
 };
 
 double *fuerza_totalX, *fuerza_totalY, *fuerza_totalZ;
+double *fuerza_localX, *fuerza_localY, *fuerza_localZ;
 float toroide_alfa;
 float toroide_theta;
 float toroide_incremento;
@@ -57,23 +59,28 @@ cuerpo_t *cuerpos;
 float delta_tiempo = 1.0f; // Intervalo de tiempo, longitud de un paso
 int pasos;
 int N;
-int debug_mode = 0;
+int T;
+int debug_mode = 0; // Modo de depuración, 0: sin depuración, 1: con depuración
+
+pthread_barrier_t barrier;
 
 //
 // Funciones para Algoritmo de gravitacion
 //
 
-void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt)
+void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
   int cuerpo1, cuerpo2;
   float dif_X, dif_Y, dif_Z;
   float distancia;
   double F;
 
-  for (cuerpo1 = 0; cuerpo1 < N - 1; cuerpo1++)
+  for (cuerpo1 = idt; cuerpo1 < N - 1; cuerpo1 += T)
   {
+    int idx1 = idt * N + cuerpo1;
     for (cuerpo2 = cuerpo1 + 1; cuerpo2 < N; cuerpo2++)
     {
+      int idx2 = idt * N + cuerpo2;
       if ((cuerpos[cuerpo1].px == cuerpos[cuerpo2].px) && (cuerpos[cuerpo1].py == cuerpos[cuerpo2].py) && (cuerpos[cuerpo1].pz == cuerpos[cuerpo2].pz))
         continue;
 
@@ -89,48 +96,67 @@ void calcularFuerzas(cuerpo_t *cuerpos, int N, int dt)
       dif_Y *= F;
       dif_Z *= F;
 
-      fuerza_totalX[cuerpo1] += dif_X;
-      fuerza_totalY[cuerpo1] += dif_Y;
-      fuerza_totalZ[cuerpo1] += dif_Z;
+      fuerza_localX[idx1] += dif_X;
+      fuerza_localY[idx1] += dif_Y;
+      fuerza_localZ[idx1] += dif_Z;
 
-      fuerza_totalX[cuerpo2] -= dif_X;
-      fuerza_totalY[cuerpo2] -= dif_Y;
-      fuerza_totalZ[cuerpo2] -= dif_Z;
+      fuerza_localX[idx2] -= dif_X;
+      fuerza_localY[idx2] -= dif_Y;
+      fuerza_localZ[idx2] -= dif_Z;
     }
   }
 }
 
-void moverCuerpos(cuerpo_t *cuerpos, int N, int dt)
+void moverCuerpos(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
-  int cuerpo;
-  for (cuerpo = 0; cuerpo < N; cuerpo++)
+  // Acumular fuerzas locales en un temporal
+  double fx = 0.0, fy = 0.0, fz = 0.0;
+  for (int cuerpo = idt; cuerpo < N; cuerpo += T)
   {
+    for (int k = 0; k < T; k++)
+    {
+      int idx = k * N + cuerpo;
+      fx += fuerza_localX[idx];
+      fy += fuerza_localY[idx];
+      fz += fuerza_localZ[idx];
+      fuerza_localX[idx] = 0.0; // Limpiar fuerzas locales
+      fuerza_localY[idx] = 0.0;
+      fuerza_localZ[idx] = 0.0;
+    }
 
-    fuerza_totalX[cuerpo] *= 1 / cuerpos[cuerpo].masa;
-    fuerza_totalY[cuerpo] *= 1 / cuerpos[cuerpo].masa;
-    fuerza_totalZ[cuerpo] *= 1 / cuerpos[cuerpo].masa;
+    // Calcular aceleración (F = ma)
+    double inv_masa = (cuerpos[cuerpo].masa > 0.0f) ? 1.0f / cuerpos[cuerpo].masa : 0.0f;
+    double ax = fx * inv_masa;
+    double ay = fy * inv_masa;
+    double az = fz * inv_masa;
 
-    cuerpos[cuerpo].vx += fuerza_totalX[cuerpo] * dt;
-    cuerpos[cuerpo].vy += fuerza_totalY[cuerpo] * dt;
-    cuerpos[cuerpo].vz += fuerza_totalZ[cuerpo] * dt;
+    // float ax = fx / cuerpos[cuerpo].masa;
+    // float ay = fy / cuerpos[cuerpo].masa;
+    // float az = fz / cuerpos[cuerpo].masa;
 
+    // Actualizar velocidad y posición
+    cuerpos[cuerpo].vx += ax * dt;
+    cuerpos[cuerpo].vy += ay * dt;
+    cuerpos[cuerpo].vz += az * dt;
     cuerpos[cuerpo].px += cuerpos[cuerpo].vx * dt;
     cuerpos[cuerpo].py += cuerpos[cuerpo].vy * dt;
     cuerpos[cuerpo].pz += cuerpos[cuerpo].vz * dt;
 
-    fuerza_totalX[cuerpo] = 0.0;
-    fuerza_totalY[cuerpo] = 0.0;
-    fuerza_totalZ[cuerpo] = 0.0;
+    fx = 0.0;
+    fy = 0.0;
+    fz = 0.0;
   }
 }
 
-void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt)
+void gravitacionCPU(cuerpo_t *cuerpos, int N, int dt, int idt)
 {
-  calcularFuerzas(cuerpos, N, dt);
-  moverCuerpos(cuerpos, N, dt);
+  calcularFuerzas(cuerpos, N, dt, idt);
+  pthread_barrier_wait(&barrier);
+  moverCuerpos(cuerpos, N, dt, idt);
+  pthread_barrier_wait(&barrier);
 }
 
-void inicializarEstrella(cuerpo_t *cuerpo, int i, double n)
+void inicializarEstrella(cuerpo_t *cuerpo, int i, float n)
 {
 
   cuerpo->masa = 0.001 * 8;
@@ -153,12 +179,12 @@ void inicializarEstrella(cuerpo_t *cuerpo, int i, double n)
   cuerpo->vy = 0.0;
   cuerpo->vz = 0.0;
 
-  cuerpo->r = 1.0; //(double )rand()/(RAND_MAX+1.0);
-  cuerpo->g = 1.0; //(double )rand()/(RAND_MAX+1.0);
-  cuerpo->b = 1.0; //(double )rand()/(RAND_MAX+1.0);
+  cuerpo->r = 1.0; //(float )rand()/(RAND_MAX+1.0);
+  cuerpo->g = 1.0; //(float )rand()/(RAND_MAX+1.0);
+  cuerpo->b = 1.0; //(float )rand()/(RAND_MAX+1.0);
 }
 
-void inicializarPolvo(cuerpo_t *cuerpo, int i, double n)
+void inicializarPolvo(cuerpo_t *cuerpo, int i, float n)
 {
 
   cuerpo->masa = 0.001 * 4;
@@ -181,12 +207,12 @@ void inicializarPolvo(cuerpo_t *cuerpo, int i, double n)
   cuerpo->vy = 0.0;
   cuerpo->vz = 0.0;
 
-  cuerpo->r = 1.0; //(double )rand()/(RAND_MAX+1.0);
-  cuerpo->g = 0.0; //(double )rand()/(RAND_MAX+1.0);
-  cuerpo->b = 0.0; //(double )rand()/(RAND_MAX+1.0);
+  cuerpo->r = 1.0; //(float )rand()/(RAND_MAX+1.0);
+  cuerpo->g = 0.0; //(float )rand()/(RAND_MAX+1.0);
+  cuerpo->b = 0.0; //(float )rand()/(RAND_MAX+1.0);
 }
 
-void inicializarH2(cuerpo_t *cuerpo, int i, double n)
+void inicializarH2(cuerpo_t *cuerpo, int i, float n)
 {
 
   cuerpo->masa = 0.001;
@@ -209,15 +235,15 @@ void inicializarH2(cuerpo_t *cuerpo, int i, double n)
   cuerpo->vy = 0.0;
   cuerpo->vz = 0.0;
 
-  cuerpo->r = 1.0; //(double )rand()/(RAND_MAX+1.0);
-  cuerpo->g = 1.0; //(double )rand()/(RAND_MAX+1.0);
-  cuerpo->b = 1.0; //(double )rand()/(RAND_MAX+1.0);
+  cuerpo->r = 1.0; //(float )rand()/(RAND_MAX+1.0);
+  cuerpo->g = 1.0; //(float )rand()/(RAND_MAX+1.0);
+  cuerpo->b = 1.0; //(float )rand()/(RAND_MAX+1.0);
 }
 
 void inicializarCuerpos(cuerpo_t *cuerpos, int N)
 {
   int cuerpo;
-  double n = N;
+  float n = N;
 
   toroide_alfa = 0.0;
   toroide_theta = 0.0;
@@ -270,9 +296,10 @@ void inicializarCuerpos(cuerpo_t *cuerpos, int N)
 
 int inicializar(int argc, char *argv[])
 {
-  if (argc < 4)
+
+  if (argc < 5)
   {
-    printf("Ejecutar: %s <nro. de cuerpos> <DT> <pasos>\n", argv[0]);
+    printf("Ejecutar: %s <nro. de cuerpos> <DT> <pasos> <Threads> (Opcional)< -d/--debug >\n", argv[0]);
     return -1;
   }
 
@@ -280,15 +307,23 @@ int inicializar(int argc, char *argv[])
   delta_tiempo = atof(argv[2]);
   pasos = atoi(argv[3]);
 
-  if (argc == 5 && (strcmp(argv[4], "-d") == 0 || strcmp(argv[4], "--debug") == 0))
+  T = atoi(argv[4]);
+
+  if (argc == 6 && (strcmp(argv[5], "-d") == 0 || strcmp(argv[5], "--debug") == 0))
   {
     debug_mode = 1;
   }
+
+  pthread_barrier_init(&barrier, NULL, T);
 
   cuerpos = (cuerpo_t *)malloc(sizeof(cuerpo_t) * N);
   fuerza_totalX = (double *)malloc(sizeof(double) * N);
   fuerza_totalY = (double *)malloc(sizeof(double) * N);
   fuerza_totalZ = (double *)malloc(sizeof(double) * N);
+
+  fuerza_localX = (double *)malloc(sizeof(double) * N * T);
+  fuerza_localY = (double *)malloc(sizeof(double) * N * T);
+  fuerza_localZ = (double *)malloc(sizeof(double) * N * T);
 
   inicializarCuerpos(cuerpos, N);
   return 0;
@@ -300,6 +335,10 @@ void finalizar(void)
   free(fuerza_totalX);
   free(fuerza_totalY);
   free(fuerza_totalZ);
+  free(fuerza_localX);
+  free(fuerza_localY);
+  free(fuerza_localZ);
+  pthread_barrier_destroy(&barrier);
 }
 
 void printResults()
@@ -316,6 +355,18 @@ void printResults()
   printf("\n\n\n");
 }
 
+void *thread(void *arg)
+{
+  int idt = *(int *)arg;
+  int paso;
+  for (paso = 0; paso < pasos; paso++)
+  {
+    gravitacionCPU(cuerpos, N, delta_tiempo, idt);
+  }
+
+  pthread_exit(NULL);
+}
+
 int main(int argc, char *argv[])
 {
   if (inicializar(argc, argv) == -1)
@@ -323,12 +374,20 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  tIni = dwalltime();
+  pthread_t threads[T];
+  int threads_ids[T];
 
-  int paso;
-  for (paso = 0; paso < pasos; paso++)
+  tIni = dwalltime();
+  int i;
+  for (i = 0; i < T; i++)
   {
-    gravitacionCPU(cuerpos, N, delta_tiempo);
+    threads_ids[i] = i;
+    pthread_create(&threads[i], NULL, &thread, (void *)&threads_ids[i]);
+  }
+
+  for (i = 0; i < T; i++)
+  {
+    pthread_join(threads[i], NULL);
   }
 
   tFin = dwalltime();
@@ -339,7 +398,8 @@ int main(int argc, char *argv[])
     printResults();
   }
 
-  printf("Tiempo en segundos: %f\n", tTotal);
+  printf("N= %d\nT=%d\n", N, T);
+  printf("Tiempo en segundos: %.15f\n", tTotal);
 
   finalizar();
   return (0);

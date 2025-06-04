@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include <mpi.h>
 #include "../utils/utils.h"
-#include "./pthread_source.h"
+#include "./pthreads_source.h"
 
 //
 // Constantes para Algoritmo de gravitacion
@@ -283,7 +283,7 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
   double tiempo_inicio_computo = dwalltime();
 
   // Cálculo multithread usando Pthreads
-  double tiempo_pthread = pthread_function(
+  double tiempo_pthread = pthreads_function(
       rank, N, cuerpos, T, delta_tiempo, pasos,
       fuerza_totalX, fuerza_totalY, fuerza_totalZ,
       fuerza_localX, fuerza_localY, fuerza_localZ,
@@ -351,7 +351,7 @@ int main(int argc, char *argv[])
   if (tiempo_computo == -1)
   {
     if (rank == 0)
-      printf("Error en pthread_function\n");
+      printf("Error en pthreads_function\n");
     if (cuerpos)
       free(cuerpos);
     MPI_Abort(MPI_COMM_WORLD, -1);
@@ -366,6 +366,7 @@ int main(int argc, char *argv[])
     {
       printResults(N, cuerpos);
     }
+    printf("N= %d\nT=%d\n", N, T);
     printf("Tiempo en segundos: %.15f segundos\n", tiempo_computo);
   }
 

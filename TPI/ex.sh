@@ -29,13 +29,13 @@ case $tipo in
     echo "Ejecutando secuencial con $nro_cuerpos cuerpos..."
     if $graficar; then
       echo "Generando gráfico..."
-      gcc -o n_body sequential/n_body_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
+      gcc -o n_body secuencial/n_body_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
       if $debug; then
         echo "Debug ignorado en modo gráfico"
       fi
       ./n_body $nro_cuerpos 200 100000
     else 
-      gcc -o n_body sequential/n_body.c utils/utils.c -lm
+      gcc -o n_body secuencial/n_body.c utils/utils.c -lm
       if $debug; then
         echo "Debug Activado"
         ./n_body $nro_cuerpos 200 1000 -d &> ./n_body.log
@@ -49,7 +49,7 @@ case $tipo in
     echo "Ejecutando pthreads con $nro_cuerpos cuerpos..."
     if $graficar; then
       echo "Generando gráfico..."
-      gcc -pthread -o n_body_pthread pthread/n_body_pthread_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
+      gcc -pthread -o n_body_pthread pthreads/n_body_pthread_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
       if $debug; then
         echo "Debug ignorado en modo gráfico"
       fi
@@ -58,7 +58,7 @@ case $tipo in
       echo "Con 8 hilos..."
       ./n_body_pthread $nro_cuerpos 200 100000 8 
     else
-      gcc -pthread -o n_body_pthread pthread/n_body_pthread.c utils/utils.c -lm
+      gcc -pthread -o n_body_pthread pthreads/n_body_pthread.c utils/utils.c -lm
       if $debug; then
         echo "Debug Activado"
         # echo "Con 1 hilos..."
@@ -84,7 +84,7 @@ case $tipo in
     ;;
   2)
     echo "Ejecutando híbrido con $nro_cuerpos cuerpos..."
-    mpicc -lpthread -lm -o mpi_pthreads hybrid/mpi_source.c hybrid/pthread_source.c utils/utils.c
+    mpicc -lpthread -lm -o mpi_pthreads hibrido/mpi_source.c hibrido/pthreads_source.c utils/utils.c
     if $debug; then
       echo "Debug Activado"
       echo "Ejecutando con 2 maquinas..."
@@ -111,13 +111,13 @@ case $tipo in
     echo "Ejecutando secuencial con $nro_cuerpos cuerpos..."
     if $graficar; then
       echo "Generando gráfico..."
-      gcc -o n_body sequential/n_body_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
+      gcc -o n_body secuencial/n_body_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
       if $debug; then
         echo "Debug ignorado en modo gráfico"
       fi
       ./n_body $nro_cuerpos 200 100000
     else 
-      gcc -o n_body sequential/n_body.c utils/utils.c -lm
+      gcc -o n_body secuencial/n_body.c utils/utils.c -lm
       if $debug; then
         echo "Debug Activado"
         ./n_body $nro_cuerpos 200 1000 -d &> ./n_body.log
@@ -131,7 +131,7 @@ case $tipo in
     echo "Ejecutando pthreads con $nro_cuerpos cuerpos..."
     if $graficar; then
       echo "Generando gráfico..."
-      gcc -pthread -o n_body_pthread pthread/n_body_pthread_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
+      gcc -pthread -o n_body_pthread pthreads/n_body_pthread_opengl.c utils/utils.c -lm -lGL -lGLU -lglut
       if $debug; then
         echo "Debug ignorado en modo gráfico"
       fi
@@ -140,7 +140,7 @@ case $tipo in
       echo "Con 8 hilos..."
       ./n_body_pthread $nro_cuerpos 200 100000 8 
     else
-      gcc -pthread -o n_body_pthread pthread/n_body_pthread.c utils/utils.c -lm
+      gcc -pthread -o n_body_pthread pthreads/n_body_pthread.c utils/utils.c -lm
       if $debug; then
         echo "Debug Activado"
         # echo "Con 1 hilos..."
@@ -166,7 +166,7 @@ case $tipo in
 
     echo ""
     echo "Ejecutando híbrido con $nro_cuerpos cuerpos..."
-    mpicc -lpthread -lm -o mpi_pthreads hybrid/mpi_source.c hybrid/pthread_source.c utils/utils.c
+    mpicc -lpthread -lm -o mpi_pthreads hibrido/mpi_source.c hibrido/pthreads_source.c utils/utils.c
     if $debug; then
       echo "Debug Activado"
       echo "Ejecutando con 2 maquinas..."

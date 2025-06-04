@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <mpi.h>
 #include "../utils/utils.h"
-#include "pthread_source.h"
+#include "pthreads_source.h"
 
 enum tag
 {
@@ -181,10 +181,10 @@ void *thread(void *arg)
   pthread_exit(NULL);
 }
 
-double pthread_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float delta_tiempo_p, int pasos_p,
-                        double *fuerza_totalX_p, double *fuerza_totalY_p, double *fuerza_totalZ_p,
-                        double *fuerza_localX_p, double *fuerza_localY_p, double *fuerza_localZ_p,
-                        double *fuerza_externaX_p, double *fuerza_externaY_p, double *fuerza_externaZ_p)
+double pthreads_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, float delta_tiempo_p, int pasos_p,
+                         double *fuerza_totalX_p, double *fuerza_totalY_p, double *fuerza_totalZ_p,
+                         double *fuerza_localX_p, double *fuerza_localY_p, double *fuerza_localZ_p,
+                         double *fuerza_externaX_p, double *fuerza_externaY_p, double *fuerza_externaZ_p)
 {
   // Inicialización de variables globales al proceso
   rank = rank_p;
