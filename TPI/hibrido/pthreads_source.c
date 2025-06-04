@@ -205,7 +205,7 @@ double pthreads_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, floa
   fuerza_externaZ = fuerza_externaZ_p;
 
   // División desigual de cuerpos: el proceso 0 recibe 30% y el 1 el 70%
-  int block_size_rank0 = (int)(0.3 * N);
+  int block_size_rank0 = (int)(0.2929 * N);
   block_size = (rank == 0) ? block_size_rank0 : N - block_size_rank0;
 
   pthread_barrier_init(&barrier, NULL, T);
