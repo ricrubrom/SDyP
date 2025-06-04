@@ -283,14 +283,14 @@ double mpi_function(int rank, cuerpo_t *cuerpos, int N, float delta_tiempo, int 
   double tiempo_inicio_computo = dwalltime();
 
   // Cálculo multithread usando Pthreads
-  double tiempo_pthread = pthreads_function(
+  double tiempo_inicializacion_pthread = pthreads_function(
       rank, N, cuerpos, T, delta_tiempo, pasos,
       fuerza_totalX, fuerza_totalY, fuerza_totalZ,
       fuerza_localX, fuerza_localY, fuerza_localZ,
       fuerza_externaX, fuerza_externaY, fuerza_externaZ);
 
   double tiempo_fin_computo = dwalltime();
-  double tiempo_computo_total = tiempo_fin_computo - tiempo_inicio_computo;
+  double tiempo_computo_total = tiempo_fin_computo - tiempo_inicio_computo - tiempo_inicializacion_pthread;
 
   // Liberar memoria usada
   free(fuerza_totalX);
@@ -357,10 +357,7 @@ int main(int argc, char *argv[])
     MPI_Abort(MPI_COMM_WORLD, -1);
   }
 
-  // El rank 1 recibe el resultado final y lo muestra
-  MPI_Bcast(cuerpos, N * sizeof(cuerpo_t), MPI_BYTE, 1, MPI_COMM_WORLD);
-
-  if (rank == 1)
+  if (rank == 0)
   {
     if (debug_mode)
     {

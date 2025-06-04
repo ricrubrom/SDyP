@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # Verificar argumentos mínimos
 if [ $# -lt 2 ]; then
   echo "Uso: $0 <tipo> <nro de cuerpos> [--graph|-g]"
@@ -23,7 +21,6 @@ for arg in "$@"; do
   fi
 done
 
-
 case $tipo in
   0)
     echo "Ejecutando secuencial con $nro_cuerpos cuerpos..."
@@ -38,9 +35,9 @@ case $tipo in
       gcc -o n_body secuencial/n_body.c utils/utils.c -lm
       if $debug; then
         echo "Debug Activado"
-        ./n_body $nro_cuerpos 200 1000 -d &> ./n_body.log
+        ./n_body $nro_cuerpos 200 1000 -d &> ./n_body_${nro_cuerpos}.log
       else
-        ./n_body $nro_cuerpos 200 1000 &> ./n_body.log
+        ./n_body $nro_cuerpos 200 1000 &> ./n_body_${nro_cuerpos}.log
       fi
     fi
     [ -e "n_body" ] && rm n_body
@@ -61,23 +58,15 @@ case $tipo in
       gcc -pthread -o n_body_pthread pthreads/n_body_pthread.c utils/utils.c -lm
       if $debug; then
         echo "Debug Activado"
-        # echo "Con 1 hilos..."
-        # ./n_body_pthread $nro_cuerpos 200 1000 1 -d &> ./n_body_pthread_1.log
         echo "Con 4 hilos..."
-        ./n_body_pthread $nro_cuerpos 200 1000 4 -d &> ./n_body_pthread_4.log
+        ./n_body_pthread $nro_cuerpos 200 1000 4 -d &> ./n_body_pthread_4_${nro_cuerpos}.log
         echo "Con 8 hilos..."
-        ./n_body_pthread $nro_cuerpos 200 1000 8 -d &> ./n_body_pthread_8.log
-        # echo "Con 16 hilos..."
-        # ./n_body_pthread $nro_cuerpos 200 1000 16 -d &> ./n_body_pthread_16.log
+        ./n_body_pthread $nro_cuerpos 200 1000 8 -d &> ./n_body_pthread_8_${nro_cuerpos}.log
       else
-        # echo "Con 1 hilos..."
-        # ./n_body_pthread $nro_cuerpos 200 1000 1 > ./n_body_pthread_1.log
         echo "Con 4 hilos..."
-        ./n_body_pthread $nro_cuerpos 200 1000 4 &> ./n_body_pthread_4.log
+        ./n_body_pthread $nro_cuerpos 200 1000 4 &> ./n_body_pthread_4_${nro_cuerpos}.log
         echo "Con 8 hilos..."
-        ./n_body_pthread $nro_cuerpos 200 1000 8 &> ./n_body_pthread_8.log
-        # echo "Con 16 hilos..."
-        # ./n_body_pthread $nro_cuerpos 200 1000 16 &> ./n_body_pthread_16.log
+        ./n_body_pthread $nro_cuerpos 200 1000 8 &> ./n_body_pthread_8_${nro_cuerpos}.log
       fi
     fi
     [ -e "n_body_pthread" ] && rm n_body_pthread
@@ -89,25 +78,25 @@ case $tipo in
       echo "Debug Activado"
       echo "Ejecutando con 2 maquinas..."
       echo "Con 2 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2 -d &> ./n_body_hybrid_2_2.log
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2 -d &> ./n_body_hybrid_2_2_${nro_cuerpos}.log
       echo "Con 4 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4 -d &> ./n_body_hybrid_2_4.log
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4 -d &> ./n_body_hybrid_2_4_${nro_cuerpos}.log
       echo "Con 8 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8 -d &> ./n_body_hybrid_2_8.log
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8 -d &> ./n_body_hybrid_2_8_${nro_cuerpos}.log
     else
       echo "Ejecutando con 2 maquinas..."
       echo "Con 2 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2 &> ./n_body_hybrid_2_2.log
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 2 &> ./n_body_hybrid_2_2_${nro_cuerpos}.log
       echo "Con 4 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4 &> ./n_body_hybrid_2_4.log
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 4 &> ./n_body_hybrid_2_4_${nro_cuerpos}.log
       echo "Con 8 hilos..."
-      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8 &> ./n_body_hybrid_2_8.log
+      mpirun --bind-to none -np 2 mpi_pthreads $nro_cuerpos 200 1000 8 &> ./n_body_hybrid_2_8_${nro_cuerpos}.log
     fi
     [ -e "mpi_pthreads" ] && rm mpi_pthreads
     ;;
   3)
-    echo "Eliminando logs previos..."
-    rm -f ./*.log
+    # echo "Eliminando logs previos..."
+    # rm -f ./*.log
     echo "Ejecutando secuencial con $nro_cuerpos cuerpos..."
     if $graficar; then
       echo "Generando gráfico..."

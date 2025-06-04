@@ -7,7 +7,7 @@
 #SBATCH -e salida_hibrido/errors.txt
 
 # Verificar argumentos
-if [ $# -ne 3 ]; then
+if [ $# -ne 2 ]; then
     echo "Uso: sbatch $0 N T"
     exit 1
 fi
@@ -15,4 +15,4 @@ fi
 N=$1
 HILOS=$2
 
-mpirun -np 2 ./mpi_pthreads $N 200 1000 $HILOS
+mpirun --bind-to none -np 2 ./mpi_pthreads $N 200 1000 $HILOS

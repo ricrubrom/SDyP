@@ -187,6 +187,7 @@ double pthreads_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, floa
                          double *fuerza_externaX_p, double *fuerza_externaY_p, double *fuerza_externaZ_p)
 {
   // Inicialización de variables globales al proceso
+  double tIniLoc = dwalltime();
   rank = rank_p;
   N = N_p;
   T = T_p;
@@ -211,8 +212,7 @@ double pthreads_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, floa
   pthread_barrier_init(&barrier, NULL, T);
   pthread_t threads[T];
   int threads_ids[T];
-
-  double tIniLoc = dwalltime();
+  double tFinLoc = dwalltime();
 
   for (int i = 0; i < T; i++)
   {
@@ -234,7 +234,14 @@ double pthreads_function(int rank_p, int N_p, cuerpo_t *cuerpos_p, int T_p, floa
     MPI_Send(cuerpos, block_size * sizeof(cuerpo_t), MPI_BYTE, 1, CUERPOS, MPI_COMM_WORLD);
   }
 
-  double tFinLoc = dwalltime();
+  if (rank == 0)
+  {
+    MPI_Recv(&cuerpos[block_size], (N - block_size) * sizeof(cuerpo_t), MPI_BYTE, 1, CUERPOS, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+  }
+  else if (rank == 1)
+  {
+    MPI_Send(&cuerpos[N - block_size], block_size * sizeof(cuerpo_t), MPI_BYTE, 0, CUERPOS, MPI_COMM_WORLD);
+  }
 
   pthread_barrier_destroy(&barrier);
 

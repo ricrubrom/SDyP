@@ -1,8 +1,16 @@
 import os
 import re
 import numpy as np
+import argparse
 
-# Detectar archivos .log que empiezan con n_body
+# Argumento para cantidad de cuerpos
+parser = argparse.ArgumentParser(
+    description="Comparar resultados N-Body para un valor de N específico")
+parser.add_argument("N", type=int, help="Cantidad de cuerpos a comparar")
+args = parser.parse_args()
+N_OBJETIVO = args.N
+
+# Detectar archivos .log que empiezan con n_body y terminan en .log
 todos_los_logs = [f for f in os.listdir(
     '.') if f.startswith('n_body') and f.endswith('.log')]
 
@@ -12,28 +20,27 @@ archivos = {}
 tiempos = {}
 
 for archivo in sorted(todos_los_logs):
-    if archivo == 'n_body.log':
-        clave = 'secuencial'
-    elif 'pthread' in archivo:
-        match = re.search(r'n_body_pthread_(\d+)\.log', archivo)
-        if not match:
+    if match := re.match(r'n_body_(\d+)\.log$', archivo):
+        N = int(match.group(1))
+        if N != N_OBJETIVO:
             continue
-        hilos = int(match.group(1))
-        clave = f'pthreads-{hilos:03d}'
-    elif 'hybrid' in archivo:
-        match = re.search(r'n_body_hybrid_(\d+)_(\d+)\.log', archivo)
-        if not match:
+        clave = f'secuencial-{N:06d}'
+    elif match := re.match(r'n_body_pthread_(\d+)_(\d+)\.log$', archivo):
+        T, N = map(int, match.groups())
+        if N != N_OBJETIVO:
             continue
-        maquinas = int(match.group(1))
-        hilos = int(match.group(2))
-        clave = f'hybrid-{maquinas:03d}-{hilos:03d}'
+        clave = f'pthreads-{T:03d}-{N:06d}'
+    elif match := re.match(r'n_body_hybrid_(\d+)_(\d+)_(\d+)\.log$', archivo):
+        P, T, N = map(int, match.groups())
+        if N != N_OBJETIVO:
+            continue
+        clave = f'hybrid-{P:03d}-{T:03d}-{N:06d}'
     else:
         continue
 
     archivos[clave] = archivo
     orden_claves.append(clave)
 
-    # Extraer tiempo total del archivo
     with open(archivo, 'r') as f:
         for linea in f:
             if 'Tiempo en segundos' in linea:
@@ -43,10 +50,7 @@ for archivo in sorted(todos_los_logs):
                     tiempos[clave] = tiempo
                 break
 
-# Eliminar duplicados respetando el orden
 orden_claves = list(dict.fromkeys(orden_claves))
-
-# Función para parsear posiciones
 
 
 def cargar_posiciones(path):
@@ -65,11 +69,9 @@ def cargar_posiciones(path):
     return cuerpos
 
 
-# Cargar posiciones
 datos = {nombre: cargar_posiciones(
     archivos[nombre]) for nombre in orden_claves}
 
-# Comparaciones ordenadas
 comparados = set()
 pares = []
 for i, a in enumerate(orden_claves):
@@ -78,8 +80,8 @@ for i, a in enumerate(orden_claves):
             pares.append((a, b))
             comparados.add((a, b))
 
-# Generar archivo de comparación
-with open("comparaciones.log", "w") as log:
+nombre_log = f"comparaciones_{N_OBJETIVO}.log"
+with open(nombre_log, "w") as log:
     for a, b in pares:
         log.write(f"Comparando: {a} vs {b}\n")
         posiciones_a = datos[a]
@@ -144,22 +146,21 @@ with open("comparaciones.log", "w") as log:
         prom_pct_y = suma_error_pct_y / num_cuerpos
         prom_pct_z = suma_error_pct_z / num_cuerpos
 
-        # Cálculo de speedup y eficiencia (solo si uno es secuencial)
-        if 'secuencial' in (a, b):
-            base = 'secuencial'
-            otro = b if a == 'secuencial' else a
-            tiempo_seq = tiempos.get('secuencial', 0.0)
+        if a.startswith('secuencial') or b.startswith('secuencial'):
+            base = a if a.startswith('secuencial') else b
+            otro = b if a == base else a
+            tiempo_seq = tiempos.get(base, 0.0)
             tiempo_otro = tiempos.get(otro, 0.0)
             speedup = tiempo_seq / tiempo_otro if tiempo_otro > 0 else 0
 
-            # Determinar cantidad de hilos/procesos
-            match = re.search(r'(\d+)', otro)
             procesos = 1
             hilos = 1
-            if 'pthread' in otro:
-                hilos = int(match.group(1))
-            elif 'hybrid' in otro:
-                match = re.search(r'hybrid-(\d+)-(\d+)', otro)
+            if otro.startswith('pthreads'):
+                match = re.search(r'pthreads-(\d+)-', otro)
+                if match:
+                    hilos = int(match.group(1))
+            elif otro.startswith('hybrid'):
+                match = re.search(r'hybrid-(\d+)-(\d+)-', otro)
                 if match:
                     procesos = int(match.group(1))
                     hilos = int(match.group(2))
